@@ -22,7 +22,7 @@ This plan outlines the creation of a **Software Requirements Specification (SRS)
 
 ### Further Considerations
 
-1. **Ranking Tier Names**: Use gaming-inspired tiers (Bronze/Silver/Gold/Platinum/Diamond/Champion/Unreal) or fitness-inspired (Beginner/Novice/Intermediate/Advanced/Elite/Legendary)? *Recommend gaming-style for gamification appeal.*
+1. **Ranking Tier Names**: Use gaming-inspired tiers (Bronze/Silver/Gold/Platinum/Diamond/Champion/Unreal)
 
 2. **Rank Decay Rate**: How aggressively should ranks decay for inactivity? Options: 5% per week / 10% per 2 weeks / tiered decay (higher ranks decay faster). *Recommend tiered decay to keep casuals engaged.*
 
