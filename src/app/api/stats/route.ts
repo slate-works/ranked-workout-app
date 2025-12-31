@@ -156,6 +156,9 @@ export async function GET(request: NextRequest) {
     // Get volume data for the past week
     const weeklyVolume = await calculateWeeklyVolume(user.id);
 
+    // Calculate current streak dynamically
+    const currentStreak = await calculateCurrentStreak(user.id);
+
     return NextResponse.json({
       user: {
         name: user.name,
@@ -165,8 +168,8 @@ export async function GET(request: NextRequest) {
       stats: {
         workoutsThisWeek,
         totalWorkouts,
-        currentStreak: user.currentStreak,
-        longestStreak: user.longestStreak,
+        currentStreak,
+        longestStreak: Math.max(user.longestStreak, currentStreak),
         weeklyVolume,
       },
       rank: {
@@ -233,4 +236,62 @@ async function calculateWeeklyVolume(userId: string): Promise<number> {
   }
 
   return totalVolume;
+}
+
+async function calculateCurrentStreak(userId: string): Promise<number> {
+  // Get all sessions ordered by date descending
+  const sessions = await db.session.findMany({
+    where: { userId },
+    orderBy: { startTime: 'desc' },
+    select: { startTime: true },
+  });
+
+  if (sessions.length === 0) {
+    return 0;
+  }
+
+  // Get unique workout dates (normalized to start of day)
+  const workoutDates = new Set<string>();
+  for (const session of sessions) {
+    const date = new Date(session.startTime);
+    date.setHours(0, 0, 0, 0);
+    workoutDates.add(date.toISOString());
+  }
+
+  // Sort dates in descending order
+  const sortedDates = Array.from(workoutDates)
+    .map(d => new Date(d))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  // Check if there's a workout today or yesterday (streak must be active)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const mostRecentWorkout = sortedDates[0];
+  
+  // If most recent workout is older than yesterday, streak is 0
+  if (mostRecentWorkout.getTime() < yesterday.getTime()) {
+    return 0;
+  }
+
+  // Count consecutive days
+  let streak = 1;
+  let currentDate = mostRecentWorkout;
+
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = new Date(currentDate);
+    prevDate.setDate(prevDate.getDate() - 1);
+    
+    if (sortedDates[i].getTime() === prevDate.getTime()) {
+      streak++;
+      currentDate = sortedDates[i];
+    } else {
+      break;
+    }
+  }
+
+  return streak;
 }

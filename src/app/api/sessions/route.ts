@@ -214,18 +214,32 @@ export async function POST(request: NextRequest) {
       orderBy: { startTime: 'desc' },
     });
 
-    let newStreak = user.currentStreak;
+    let newStreak = 1; // Default to 1 for a new workout
+    
     if (lastSession) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const lastWorkoutDate = new Date(lastSession.startTime);
+      lastWorkoutDate.setHours(0, 0, 0, 0);
+      
+      const todayWorkoutDate = new Date(newSession.startTime);
+      todayWorkoutDate.setHours(0, 0, 0, 0);
+      
       const daysDiff = Math.floor(
-        (new Date().getTime() - lastSession.startTime.getTime()) / (1000 * 60 * 60 * 24)
+        (todayWorkoutDate.getTime() - lastWorkoutDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      if (daysDiff <= 1) {
-        newStreak = user.currentStreak + 1;
-      } else if (daysDiff > 2) {
+      
+      if (daysDiff === 0) {
+        // Same day - keep current streak, don't increment
+        newStreak = user.currentStreak || 1;
+      } else if (daysDiff === 1) {
+        // Consecutive day - increment streak
+        newStreak = (user.currentStreak || 0) + 1;
+      } else {
+        // Gap of 2+ days - reset streak to 1
         newStreak = 1;
       }
-    } else {
-      newStreak = 1;
     }
 
     // Update user streak
