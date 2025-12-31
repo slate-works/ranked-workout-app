@@ -40,20 +40,15 @@ const rankColors: Record<RankTier, { fill: string; stroke: string; glow?: string
     stroke: '#B9F2FF',
     glow: '0 0 8px rgba(185, 242, 255, 0.6)',
   },
-  champion: { 
-    fill: 'rgba(155, 89, 182, 0.85)', 
-    stroke: '#9B59B6',
-    glow: '0 0 10px rgba(155, 89, 182, 0.6)',
+  apex: { 
+    fill: 'rgba(75, 0, 130, 0.85)', 
+    stroke: '#4B0082',
+    glow: '0 0 10px rgba(75, 0, 130, 0.6)',
   },
-  elite: { 
-    fill: 'rgba(231, 76, 60, 0.9)', 
-    stroke: '#E74C3C',
-    glow: '0 0 12px rgba(231, 76, 60, 0.6)',
-  },
-  unreal: { 
-    fill: 'rgba(255, 0, 255, 0.9)', 
-    stroke: '#FF00FF',
-    glow: '0 0 15px rgba(255, 0, 255, 0.8)',
+  mythic: { 
+    fill: 'rgba(255, 0, 0, 0.9)', 
+    stroke: '#FF0000',
+    glow: '0 0 15px rgba(255, 0, 0, 0.8)',
   },
 };
 
@@ -598,9 +593,8 @@ export function AnatomyLegend({ className }: { className?: string }) {
     { label: 'Silver', rank: 'silver' },
     { label: 'Gold', rank: 'gold' },
     { label: 'Diamond', rank: 'diamond' },
-    { label: 'Champion', rank: 'champion' },
-    { label: 'Elite', rank: 'elite' },
-    { label: 'Unreal', rank: 'unreal' },
+    { label: 'Apex', rank: 'apex' },
+    { label: 'Mythic', rank: 'mythic' },
   ];
 
   return (

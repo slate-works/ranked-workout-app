@@ -1,7 +1,7 @@
 # Ranked Gym Progress
 A self-hostable, open-source web app that gamifies strength and hypertrophy training using ranked muscle-group progression, recovery readiness, streaks, PR tracking, and insights.
 
-This is built to feel like a ranked mode in games (Bronze → Unreal), but for the gym.
+This is built to feel like a ranked mode in games (Bronze → Mythic), but for the gym.
 
 <img width="1113" height="1074" alt="image" src="https://github.com/user-attachments/assets/6eab5df9-80fc-4008-a8f7-e8e5c3750b11" />
 
@@ -15,7 +15,7 @@ This app is for educational and motivational purposes only. It is not medical ad
 - Accounts + user profiles (age, sex, height, weight, training age)
 - Workout logging (sessions, exercises, sets, reps, load, optional RPE/RIR)
 - Strength scoring (per exercise, per muscle group, overall)
-- Rank tiers (Bronze, Silver, Gold, Diamond, Champion, Elite, Unreal)
+- Rank tiers (Bronze, Silver, Gold, Diamond, Apex, Mythic)
 - Rank progression for consistency and performance improvement
 - Rank decay with inactivity (per muscle group)
 - Recovery readiness states per muscle group (Need Recovery, Recovering, Ready)

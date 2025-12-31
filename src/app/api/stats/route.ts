@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate progress within current rank
     const rankThresholds = scoringConfig.rankTiers;
-    const rankTierKeys: RankTier[] = ['bronze', 'silver', 'gold', 'diamond', 'champion', 'elite', 'unreal'];
+    const rankTierKeys: RankTier[] = ['bronze', 'silver', 'gold', 'diamond', 'apex', 'mythic'];
     const currentTierIndex = rankTierKeys.indexOf(overallRank);
     const currentTier = rankThresholds[overallRank];
     const nextTierKey = rankTierKeys[currentTierIndex + 1];
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
       },
       rank: {
         overall: overallRank,
-        score: Math.round(avgScore),
+        score: Math.floor(avgScore),
         progress: Math.round(rankProgress),
       },
       muscleScores,

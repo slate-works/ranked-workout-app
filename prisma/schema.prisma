@@ -257,7 +257,7 @@ model MuscleGroupScoreSnapshot {
   muscleGroup   MuscleGroup @relation(fields: [muscleGroupId], references: [id])
 
   score         Float       // 0-100 score
-  rank          String      // "bronze" | "silver" | "gold" | "diamond" | "champion" | "elite" | "unreal"
+  rank          String      // "bronze" | "silver" | "gold" | "diamond" | "apex" | "mythic"
   weekNumber    Int         // ISO week number
   year          Int
 

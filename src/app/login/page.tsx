@@ -132,7 +132,7 @@ export default function LoginPage() {
 
         {/* Rank Preview */}
         <div className="flex justify-center gap-2">
-          {['bronze', 'silver', 'gold', 'diamond', 'champion', 'elite', 'unreal'].map(
+          {['bronze', 'silver', 'gold', 'diamond', 'apex', 'mythic'].map(
             (rank) => (
               <div
                 key={rank}

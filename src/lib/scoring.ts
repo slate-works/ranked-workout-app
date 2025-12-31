@@ -4,7 +4,7 @@ import scoringConfig from '@/../config/scoring.json';
 // TYPES
 // ============================================================================
 
-export type RankTier = 'bronze' | 'silver' | 'gold' | 'diamond' | 'champion' | 'elite' | 'unreal';
+export type RankTier = 'bronze' | 'silver' | 'gold' | 'diamond' | 'apex' | 'mythic';
 
 export interface RankInfo {
   tier: RankTier;
@@ -172,9 +172,8 @@ export function overallScore(muscleGroupScores: number[]): number {
 export function getRankTier(score: number): RankTier {
   const tiers = scoringConfig.rankTiers;
   
-  if (score >= tiers.unreal.min) return 'unreal';
-  if (score >= tiers.elite.min) return 'elite';
-  if (score >= tiers.champion.min) return 'champion';
+  if (score >= tiers.mythic.min) return 'mythic';
+  if (score >= tiers.apex.min) return 'apex';
   if (score >= tiers.diamond.min) return 'diamond';
   if (score >= tiers.gold.min) return 'gold';
   if (score >= tiers.silver.min) return 'silver';

@@ -25,17 +25,13 @@ const rankConfig: Record<RankTier, { label: string; gradient: string }> = {
     label: 'Diamond',
     gradient: 'from-cyan-400 to-cyan-200',
   },
-  champion: {
-    label: 'Champion',
-    gradient: 'from-purple-600 to-purple-400',
+  apex: {
+    label: 'Apex',
+    gradient: 'from-indigo-600 to-purple-600',
   },
-  elite: {
-    label: 'Elite',
-    gradient: 'from-red-600 to-red-400',
-  },
-  unreal: {
-    label: 'Unreal',
-    gradient: 'from-fuchsia-600 via-purple-500 to-cyan-400',
+  mythic: {
+    label: 'Mythic',
+    gradient: 'from-red-600 via-orange-500 to-red-600',
   },
 };
 
@@ -61,7 +57,7 @@ export function RankBadge({
         'inline-flex items-center justify-center rounded-full font-bold text-white shadow-lg',
         `bg-gradient-to-r ${config.gradient}`,
         sizeConfig[size],
-        safeRank === 'unreal' && 'animate-pulse',
+        safeRank === 'mythic' && 'animate-pulse',
         className
       )}
       style={{
@@ -83,12 +79,11 @@ export interface RankProgressProps {
 
 const rankThresholds: { rank: RankTier; min: number }[] = [
   { rank: 'bronze', min: 0 },
-  { rank: 'silver', min: 20 },
-  { rank: 'gold', min: 40 },
-  { rank: 'diamond', min: 55 },
-  { rank: 'champion', min: 70 },
-  { rank: 'elite', min: 82 },
-  { rank: 'unreal', min: 92 },
+  { rank: 'silver', min: 25 },
+  { rank: 'gold', min: 50 },
+  { rank: 'diamond', min: 70 },
+  { rank: 'apex', min: 85 },
+  { rank: 'mythic', min: 95 },
 ];
 
 export function RankProgress({
@@ -127,7 +122,7 @@ export function RankProgress({
       </div>
       {currentScore !== undefined && (
         <p className="text-xs text-muted-foreground text-center">
-          {currentScore.toFixed(0)} / {nextMin} points
+          {Math.floor(currentScore)} / {nextMin} points
           {nextRank && ` to ${rankConfig[nextRank.rank].label}`}
         </p>
       )}

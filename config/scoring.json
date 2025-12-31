@@ -3,13 +3,12 @@
   "version": "1.0.0",
   
   "rankTiers": {
-    "bronze": { "min": 0, "max": 20, "color": "#CD7F32" },
-    "silver": { "min": 20, "max": 40, "color": "#C0C0C0" },
-    "gold": { "min": 40, "max": 55, "color": "#FFD700" },
-    "diamond": { "min": 55, "max": 70, "color": "#B9F2FF" },
-    "champion": { "min": 70, "max": 82, "color": "#9B59B6" },
-    "elite": { "min": 82, "max": 92, "color": "#E74C3C" },
-    "unreal": { "min": 92, "max": 100, "color": "#FF00FF" }
+    "bronze": { "min": 0, "max": 25, "color": "#CD7F32" },
+    "silver": { "min": 25, "max": 50, "color": "#C0C0C0" },
+    "gold": { "min": 50, "max": 70, "color": "#FFD700" },
+    "diamond": { "min": 70, "max": 85, "color": "#B9F2FF" },
+    "apex": { "min": 85, "max": 95, "color": "#4B0082" },
+    "mythic": { "min": 95, "max": 100, "color": "#FF0000" }
   },
 
   "scoring": {
