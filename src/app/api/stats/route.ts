@@ -131,9 +131,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate overall rank
+    // Calculate overall rank (include all muscle groups, even with 0 scores)
+    // This ensures training any muscle group always helps your overall rank
     const avgScore = Object.values(muscleScores).reduce((a, b) => a + b, 0) / 
-      Math.max(1, Object.values(muscleScores).filter(s => s > 0).length);
+      Math.max(1, Object.values(muscleScores).length);
     
     const overallRank = determineRank(avgScore);
 
