@@ -1,7 +1,7 @@
 # Ranked Gym Progress
 A self-hostable, open-source web app that gamifies strength and hypertrophy training using ranked muscle-group progression, recovery readiness, streaks, PR tracking, and insights.
 
-This is built to feel like a ranked ladder in games (Bronze → Unreal), but for the gym.
+This is built to feel like a ranked mode in games (Bronze → Unreal), but for the gym.
 
 ## Disclaimer
 This app is for educational and motivational purposes only. It is not medical advice. If you have injuries or medical conditions, consult a qualified professional.
