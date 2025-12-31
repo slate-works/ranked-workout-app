@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Plus,
@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronRight,
   Filter,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,58 +24,20 @@ import {
 import { RankBadge } from '@/components/rank-badge';
 import { RankTier } from '@/lib/scoring';
 
-// Mock workout history data
-const mockWorkouts = [
-  {
-    id: '1',
-    date: '2024-12-31',
-    name: 'Push Day',
-    type: 'push',
-    duration: 65,
-    exercises: [
-      { name: 'Barbell Bench Press', sets: 4, topSet: '100kg x 6' },
-      { name: 'Incline Dumbbell Press', sets: 3, topSet: '32kg x 10' },
-      { name: 'Cable Fly', sets: 3, topSet: '15kg x 12' },
-      { name: 'Overhead Press', sets: 3, topSet: '60kg x 8' },
-      { name: 'Lateral Raise', sets: 3, topSet: '12kg x 15' },
-      { name: 'Tricep Pushdown', sets: 3, topSet: '30kg x 12' },
-    ],
-    volume: 12500,
-    prs: ['Barbell Bench Press 1RM'],
-  },
-  {
-    id: '2',
-    date: '2024-12-30',
-    name: 'Leg Day',
-    type: 'legs',
-    duration: 75,
-    exercises: [
-      { name: 'Barbell Back Squat', sets: 5, topSet: '140kg x 5' },
-      { name: 'Romanian Deadlift', sets: 4, topSet: '100kg x 8' },
-      { name: 'Leg Press', sets: 3, topSet: '200kg x 10' },
-      { name: 'Leg Curl', sets: 3, topSet: '45kg x 12' },
-      { name: 'Calf Raise', sets: 4, topSet: '80kg x 15' },
-    ],
-    volume: 18200,
-    prs: ['Barbell Back Squat 1RM'],
-  },
-  {
-    id: '3',
-    date: '2024-12-28',
-    name: 'Pull Day',
-    type: 'pull',
-    duration: 60,
-    exercises: [
-      { name: 'Barbell Deadlift', sets: 3, topSet: '180kg x 3' },
-      { name: 'Pull-Up', sets: 4, topSet: 'BW x 10' },
-      { name: 'Barbell Row', sets: 4, topSet: '80kg x 8' },
-      { name: 'Face Pull', sets: 3, topSet: '20kg x 15' },
-      { name: 'Barbell Curl', sets: 3, topSet: '35kg x 10' },
-    ],
-    volume: 14800,
-    prs: [],
-  },
-];
+interface Workout {
+  id: string;
+  date: string;
+  name: string | null;
+  type: string;
+  duration: number;
+  exercises: Array<{
+    name: string;
+    sets: number;
+    topSet: string;
+  }>;
+  volume: number;
+  prs: string[];
+}
 
 const typeColors: Record<string, string> = {
   push: 'bg-red-500/10 text-red-500',
@@ -88,10 +51,76 @@ const typeColors: Record<string, string> = {
 
 export default function WorkoutsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredWorkouts = mockWorkouts.filter(
+  useEffect(() => {
+    async function fetchWorkouts() {
+      try {
+        const res = await fetch('/api/sessions');
+        if (!res.ok) throw new Error('Failed to fetch workouts');
+        const data = await res.json();
+        
+        // Transform API response to match component's expected format
+        const transformedWorkouts: Workout[] = data.sessions.map((session: {
+          id: string;
+          startTime: string;
+          endTime: string | null;
+          name: string | null;
+          type: string;
+          exercises: Array<{
+            exercise: { name: string };
+            sets: Array<{ weight: number; reps: number; isWarmup: boolean }>;
+          }>;
+        }) => {
+          const startTime = new Date(session.startTime);
+          const endTime = session.endTime ? new Date(session.endTime) : new Date();
+          const duration = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+          
+          let totalVolume = 0;
+          const exerciseData = session.exercises.map((ex) => {
+            const workingSets = ex.sets.filter(s => !s.isWarmup);
+            const topSet = workingSets.length > 0 
+              ? workingSets.reduce((max, s) => s.weight > max.weight ? s : max, workingSets[0])
+              : null;
+            
+            workingSets.forEach(s => {
+              totalVolume += s.weight * s.reps;
+            });
+
+            return {
+              name: ex.exercise.name,
+              sets: workingSets.length,
+              topSet: topSet ? `${topSet.weight}kg x ${topSet.reps}` : '-',
+            };
+          });
+
+          return {
+            id: session.id,
+            date: session.startTime.split('T')[0],
+            name: session.name,
+            type: session.type || 'custom',
+            duration,
+            exercises: exerciseData,
+            volume: totalVolume,
+            prs: [], // We'd need to track PRs per session
+          };
+        });
+
+        setWorkouts(transformedWorkouts);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchWorkouts();
+  }, []);
+
+  const filteredWorkouts = workouts.filter(
     (w) =>
-      w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (w.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       w.exercises.some((e) =>
         e.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -150,117 +179,139 @@ export default function WorkoutsPage() {
         </Button>
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-3xl font-bold">{mockWorkouts.length}</p>
-            <p className="text-xs text-muted-foreground">This Week</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-3xl font-bold">
-              {Math.round(
-                mockWorkouts.reduce((acc, w) => acc + w.duration, 0) / 60
-              )}h
-            </p>
-            <p className="text-xs text-muted-foreground">Total Time</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-3xl font-bold">
-              {(
-                mockWorkouts.reduce((acc, w) => acc + w.volume, 0) / 1000
-              ).toFixed(1)}k
-            </p>
-            <p className="text-xs text-muted-foreground">Volume (kg)</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
 
-      {/* Workout List */}
-      <div className="space-y-4">
-        {filteredWorkouts.map((workout) => (
-          <Link key={workout.id} href={`/dashboard/workouts/${workout.id}`}>
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
-                          typeColors[workout.type]
-                        }`}
-                      >
-                        {workout.type.replace('_', ' ')}
-                      </span>
-                      {workout.prs.length > 0 && (
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500">
-                          🏆 {workout.prs.length} PR
-                          {workout.prs.length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-medium">{workout.name}</h3>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(workout.date)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {workout.duration}min
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Dumbbell className="h-3 w-3" />
-                        {workout.exercises.length} exercises
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {workout.exercises.slice(0, 3).map((ex) => (
-                        <span
-                          key={ex.name}
-                          className="px-2 py-0.5 bg-muted rounded text-xs"
-                        >
-                          {ex.name}
-                        </span>
-                      ))}
-                      {workout.exercises.length > 3 && (
-                        <span className="px-2 py-0.5 bg-muted rounded text-xs text-muted-foreground">
-                          +{workout.exercises.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                </div>
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-destructive mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      )}
+
+      {/* Content */}
+      {!isLoading && !error && (
+        <>
+          {/* Stats Summary */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold">{workouts.length}</p>
+                <p className="text-xs text-muted-foreground">Total Workouts</p>
               </CardContent>
             </Card>
-          </Link>
-        ))}
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold">
+                  {workouts.length > 0
+                    ? Math.round(workouts.reduce((acc, w) => acc + w.duration, 0) / 60)
+                    : 0}h
+                </p>
+                <p className="text-xs text-muted-foreground">Total Time</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-3xl font-bold">
+                  {workouts.length > 0
+                    ? (workouts.reduce((acc, w) => acc + w.volume, 0) / 1000).toFixed(1)
+                    : 0}k
+                </p>
+                <p className="text-xs text-muted-foreground">Volume (kg)</p>
+              </CardContent>
+            </Card>
+          </div>
 
-        {filteredWorkouts.length === 0 && (
-          <div className="text-center py-12">
-            <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-medium mb-2">No workouts found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {searchQuery
-                ? 'Try a different search term'
-                : 'Start your first workout to begin tracking'}
-            </p>
-            {!searchQuery && (
-              <Link href="/dashboard/workouts/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Start Workout
-                </Button>
+          {/* Workout List */}
+          <div className="space-y-4">
+            {filteredWorkouts.map((workout) => (
+              <Link key={workout.id} href={`/dashboard/workouts/${workout.id}`}>
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
+                              typeColors[workout.type] || typeColors.custom
+                            }`}
+                          >
+                            {workout.type.replace('_', ' ')}
+                          </span>
+                          {workout.prs.length > 0 && (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500">
+                              🏆 {workout.prs.length} PR
+                              {workout.prs.length > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-medium">{workout.name || 'Workout'}</h3>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(workout.date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {workout.duration}min
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Dumbbell className="h-3 w-3" />
+                            {workout.exercises.length} exercises
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {workout.exercises.slice(0, 3).map((ex, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 bg-muted rounded text-xs"
+                            >
+                              {ex.name}
+                            </span>
+                          ))}
+                          {workout.exercises.length > 3 && (
+                            <span className="px-2 py-0.5 bg-muted rounded text-xs text-muted-foreground">
+                              +{workout.exercises.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
               </Link>
+            ))}
+
+            {filteredWorkouts.length === 0 && workouts.length > 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No workouts match your search</p>
+              </div>
+            )}
+
+            {workouts.length === 0 && (
+              <div className="text-center py-12">
+                <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-medium text-lg mb-2">No workouts yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start logging your first workout to track your progress
+                </p>
+                <Link href="/dashboard/workouts/new">
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Start First Workout
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

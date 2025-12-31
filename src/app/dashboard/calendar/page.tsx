@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Calendar as CalendarIcon,
   Dumbbell,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,96 +20,37 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-// Mock workout data for the heatmap
-const generateMockData = () => {
-  const data: Record<string, { count: number; volume: number }> = {};
-  const today = new Date();
-
-  // Generate random workout data for the past year
-  for (let i = 0; i < 365; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-
-    // ~60% chance of workout on any given day
-    if (Math.random() > 0.4) {
-      data[dateStr] = {
-        count: Math.floor(Math.random() * 3) + 1, // 1-3 sessions
-        volume: Math.floor(Math.random() * 15000) + 5000, // 5000-20000 kg
-      };
-    }
-  }
-  return data;
-};
-
-const MOCK_WORKOUT_DATA = generateMockData();
-
-// Calculate streak data
-const calculateStreaks = () => {
-  const today = new Date();
-  let currentStreak = 0;
-  let longestStreak = 0;
-  let tempStreak = 0;
-
-  // Check current streak
-  for (let i = 0; i < 365; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-
-    if (MOCK_WORKOUT_DATA[dateStr]) {
-      if (i === 0 || currentStreak > 0) {
-        currentStreak++;
-      }
-      tempStreak++;
-    } else {
-      if (tempStreak > longestStreak) {
-        longestStreak = tempStreak;
-      }
-      tempStreak = 0;
-      if (i > 0) {
-        // Allow for one day gap to count current streak
-        currentStreak = 0;
-      }
-    }
-  }
-
-  if (tempStreak > longestStreak) {
-    longestStreak = tempStreak;
-  }
-
-  return { currentStreak, longestStreak };
-};
-
-const streakData = calculateStreaks();
-
-// Count workouts this week and month
-const countWorkouts = () => {
-  const today = new Date();
-  let thisWeek = 0;
-  let thisMonth = 0;
-  let totalWorkouts = 0;
-
-  for (let i = 0; i < 365; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-
-    if (MOCK_WORKOUT_DATA[dateStr]) {
-      totalWorkouts += MOCK_WORKOUT_DATA[dateStr].count;
-      if (i < 7) thisWeek += MOCK_WORKOUT_DATA[dateStr].count;
-      if (i < 30) thisMonth += MOCK_WORKOUT_DATA[dateStr].count;
-    }
-  }
-
-  return { thisWeek, thisMonth, totalWorkouts };
-};
-
-const workoutCounts = countWorkouts();
+interface CalendarData {
+  activity: Record<string, { count: number; volume: number; duration: number; types: string[] }>;
+  streaks: { current: number; longest: number };
+  summary: { thisWeek: number; thisMonth: number; total: number };
+}
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'year' | 'month'>('year');
+  const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch calendar data
+  useEffect(() => {
+    async function fetchCalendarData() {
+      try {
+        setIsLoading(true);
+        const year = currentDate.getFullYear();
+        const res = await fetch(`/api/calendar?year=${year}`);
+        if (!res.ok) throw new Error('Failed to fetch calendar data');
+        const data = await res.json();
+        setCalendarData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCalendarData();
+  }, [currentDate.getFullYear()]);
 
   const navigateMonth = (direction: number) => {
     const newDate = new Date(currentDate);
@@ -129,6 +71,8 @@ export default function CalendarPage() {
     return 'bg-green-500';
   };
 
+  const activity = calendarData?.activity || {};
+
   // Generate year heatmap data
   const yearHeatmapData = useMemo(() => {
     const weeks: { date: Date; count: number }[][] = [];
@@ -144,7 +88,7 @@ export default function CalendarPage() {
 
     while (currentIterDate <= endDate || currentWeek.length > 0) {
       const dateStr = currentIterDate.toISOString().split('T')[0];
-      const workoutData = MOCK_WORKOUT_DATA[dateStr];
+      const workoutData = activity[dateStr];
 
       currentWeek.push({
         date: new Date(currentIterDate),
@@ -166,7 +110,7 @@ export default function CalendarPage() {
     }
 
     return weeks;
-  }, [currentDate]);
+  }, [currentDate, activity]);
 
   // Generate month calendar data
   const monthCalendarData = useMemo(() => {
@@ -187,7 +131,7 @@ export default function CalendarPage() {
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(year, month, day);
       const dateStr = date.toISOString().split('T')[0];
-      const workoutData = MOCK_WORKOUT_DATA[dateStr];
+      const workoutData = activity[dateStr];
 
       days.push({
         date,
@@ -197,7 +141,7 @@ export default function CalendarPage() {
     }
 
     return days;
-  }, [currentDate]);
+  }, [currentDate, activity]);
 
   const monthNames = [
     'Jan',
@@ -213,6 +157,25 @@ export default function CalendarPage() {
     'Nov',
     'Dec',
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -251,7 +214,7 @@ export default function CalendarPage() {
                 <Flame className="h-5 w-5 text-orange-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{streakData.currentStreak}</p>
+                <p className="text-2xl font-bold">{calendarData?.streaks.current || 0}</p>
                 <p className="text-xs text-muted-foreground">Current Streak</p>
               </div>
             </div>
@@ -264,7 +227,7 @@ export default function CalendarPage() {
                 <TrendingUp className="h-5 w-5 text-yellow-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{streakData.longestStreak}</p>
+                <p className="text-2xl font-bold">{calendarData?.streaks.longest || 0}</p>
                 <p className="text-xs text-muted-foreground">Best Streak</p>
               </div>
             </div>
@@ -277,7 +240,7 @@ export default function CalendarPage() {
                 <CalendarIcon className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{workoutCounts.thisMonth}</p>
+                <p className="text-2xl font-bold">{calendarData?.summary.thisMonth || 0}</p>
                 <p className="text-xs text-muted-foreground">This Month</p>
               </div>
             </div>
@@ -291,7 +254,7 @@ export default function CalendarPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {workoutCounts.totalWorkouts}
+                  {calendarData?.summary.total || 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Total Workouts</p>
               </div>
@@ -464,7 +427,7 @@ export default function CalendarPage() {
                 const targetDate = new Date(weekStart);
                 targetDate.setDate(weekStart.getDate() + day);
                 const dateStr = targetDate.toISOString().split('T')[0];
-                const hasWorkout = MOCK_WORKOUT_DATA[dateStr];
+                const hasWorkout = activity[dateStr];
 
                 return (
                   <div
@@ -482,11 +445,11 @@ export default function CalendarPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium">
-                {workoutCounts.thisWeek}/4 workouts this week
+                {calendarData?.summary.thisWeek || 0}/4 workouts this week
               </p>
               <p className="text-xs text-muted-foreground">
-                {4 - workoutCounts.thisWeek > 0
-                  ? `${4 - workoutCounts.thisWeek} more to hit your goal`
+                {(calendarData?.summary.thisWeek || 0) < 4
+                  ? `${4 - (calendarData?.summary.thisWeek || 0)} more to hit your goal`
                   : '🎉 Goal reached!'}
               </p>
             </div>

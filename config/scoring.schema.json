@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Scoring Configuration",
+  "description": "Configuration for the RankedGym scoring system",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "description": "Configuration version"
+    },
+    "rankTiers": {
+      "type": "object",
+      "description": "Rank tier definitions",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "color": { "type": "string" }
+        },
+        "required": ["min", "max", "color"]
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "properties": {
+        "allometricExponent": { "type": "number" },
+        "baseScoreMultiplier": { "type": "number" },
+        "baseScoreOffset": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "minScore": { "type": "number" }
+      }
+    },
+    "oneRmEstimation": {
+      "type": "object",
+      "properties": {
+        "defaultMethod": { "type": "string" },
+        "methods": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "formula": { "type": "string" },
+              "accurateRepRange": { "type": "array", "items": { "type": "number" } },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "lowConfidenceThreshold": { "type": "number" }
+      }
+    },
+    "rirToPercentage": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "ageAdjustmentFactors": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "volumeLandmarks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "trainingAgeYears": { "type": "array" },
+          "MEV": { "type": "number" },
+          "MAV": { "type": "array", "items": { "type": "number" } },
+          "MRV": { "type": "number" }
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "properties": {
+        "states": { "type": "object" },
+        "baseTauHours": { "type": "object" },
+        "multipliers": { "type": "object" }
+      }
+    },
+    "decay": {
+      "type": "object",
+      "properties": {
+        "model": { "type": "string" },
+        "alpha": { "type": "number" },
+        "minRetention": { "type": "number" },
+        "tauHalfDays": { "type": "object" },
+        "ageThreshold": { "type": "number" }
+      }
+    },
+    "streaks": {
+      "type": "object",
+      "properties": {
+        "restDaysAllowed": { "type": "number" },
+        "minSessionsPerWeek": { "type": "number" }
+      }
+    },
+    "milestones": {
+      "type": "object",
+      "properties": {
+        "clubs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "totalLb": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["version", "rankTiers", "scoring"]
+}

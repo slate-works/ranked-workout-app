@@ -62,7 +62,7 @@ const defaultFormData: ProfileData = {
   name: '',
   email: '',
   avatar: null,
-  rank: 'unranked' as RankTier,
+  rank: 'bronze',
   memberSince: '',
   profile: {
     sex: 'male',

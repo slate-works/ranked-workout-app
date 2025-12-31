@@ -51,7 +51,9 @@ export function RankBadge({
   showLabel = true,
   className,
 }: RankBadgeProps) {
-  const config = rankConfig[rank];
+  // Fallback to bronze if rank is invalid or undefined
+  const safeRank = rank && rankConfig[rank] ? rank : 'bronze';
+  const config = rankConfig[safeRank];
 
   return (
     <div
@@ -59,11 +61,11 @@ export function RankBadge({
         'inline-flex items-center justify-center rounded-full font-bold text-white shadow-lg',
         `bg-gradient-to-r ${config.gradient}`,
         sizeConfig[size],
-        rank === 'unreal' && 'animate-pulse',
+        safeRank === 'unreal' && 'animate-pulse',
         className
       )}
       style={{
-        boxShadow: `0 0 20px var(--rank-${rank})`,
+        boxShadow: `0 0 20px var(--rank-${safeRank})`,
       }}
     >
       {showLabel && config.label}

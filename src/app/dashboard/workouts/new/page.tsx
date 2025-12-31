@@ -55,11 +55,23 @@ interface ExerciseData {
   dumbbellMode?: 'single' | 'paired';
 }
 
+interface MuscleContribution {
+  isPrimary: boolean;
+  contributionPercentage: number;
+  muscleGroup: {
+    id: string;
+    name: string;
+    bodyArea: string;
+  };
+}
+
 interface Exercise {
   id: string;
   name: string;
-  equipment: string;
-  primaryMuscle: string;
+  category: string;
+  equipmentType: string;
+  movementPattern: string | null;
+  muscleContributions: MuscleContribution[];
 }
 
 const WORKOUT_TYPES = [
@@ -101,6 +113,7 @@ export default function NewWorkoutPage() {
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [workoutStartTime] = useState(() => new Date());
+  const [selectedExerciseIds, setSelectedExerciseIds] = useState<Set<string>>(new Set());
 
   // Fetch exercises from API
   useEffect(() => {
@@ -110,7 +123,8 @@ export default function NewWorkoutPage() {
         const res = await fetch('/api/exercises');
         if (res.ok) {
           const data = await res.json();
-          setAvailableExercises(data.exercises || []);
+          // API returns exercises array directly
+          setAvailableExercises(Array.isArray(data) ? data : data.exercises || []);
         }
       } catch (error) {
         console.error('Failed to fetch exercises:', error);
@@ -131,9 +145,101 @@ export default function NewWorkoutPage() {
     }
   }, [restTimeRemaining]);
 
+  // Helper to get primary muscle group from an exercise
+  const getPrimaryMuscle = (exercise: Exercise): string => {
+    const primary = exercise.muscleContributions.find(mc => mc.isPrimary);
+    return primary?.muscleGroup.name || 'Other';
+  };
+
+  // Map workout types to relevant muscle groups and movement patterns
+  const workoutTypeRelevance: Record<string, { muscles: string[]; patterns: string[] }> = {
+    push: { muscles: ['chest', 'shoulders', 'triceps'], patterns: ['push'] },
+    pull: { muscles: ['back', 'biceps'], patterns: ['pull'] },
+    legs: { muscles: ['quads', 'hamstrings', 'glutes', 'calves'], patterns: ['squat', 'hinge'] },
+    upper: { muscles: ['chest', 'back', 'shoulders', 'biceps', 'triceps'], patterns: ['push', 'pull'] },
+    lower: { muscles: ['quads', 'hamstrings', 'glutes', 'calves'], patterns: ['squat', 'hinge'] },
+    full_body: { muscles: [], patterns: [] },
+    custom: { muscles: [], patterns: [] },
+  };
+
+  // Check if an exercise is relevant to the current workout type
+  const isExerciseRelevant = (exercise: Exercise): boolean => {
+    if (!workoutType || !workoutTypeRelevance[workoutType]) return false;
+    const { muscles, patterns } = workoutTypeRelevance[workoutType];
+    
+    // Check movement pattern
+    if (exercise.movementPattern && patterns.includes(exercise.movementPattern.toLowerCase())) {
+      return true;
+    }
+    
+    // Check if primary muscle matches
+    const primaryMuscle = getPrimaryMuscle(exercise).toLowerCase();
+    return muscles.includes(primaryMuscle);
+  };
+
+  // Filter and group exercises by muscle group
   const filteredExercises = availableExercises.filter((ex) =>
     ex.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Group exercises by primary muscle
+  const groupedExercises = filteredExercises.reduce<Record<string, Exercise[]>>((acc, ex) => {
+    const muscle = getPrimaryMuscle(ex);
+    const displayName = muscle.charAt(0).toUpperCase() + muscle.slice(1);
+    if (!acc[displayName]) acc[displayName] = [];
+    acc[displayName].push(ex);
+    return acc;
+  }, {});
+
+  // Sort muscle groups - prioritize relevant ones based on workout type
+  const sortedMuscleGroups = Object.keys(groupedExercises).sort((a, b) => {
+    if (!workoutType || !workoutTypeRelevance[workoutType]) {
+      return a.localeCompare(b);
+    }
+    
+    const relevantMuscles = workoutTypeRelevance[workoutType].muscles.map(m => 
+      m.charAt(0).toUpperCase() + m.slice(1)
+    );
+    
+    const aIsRelevant = relevantMuscles.includes(a);
+    const bIsRelevant = relevantMuscles.includes(b);
+    
+    if (aIsRelevant && !bIsRelevant) return -1;
+    if (!aIsRelevant && bIsRelevant) return 1;
+    return a.localeCompare(b);
+  });
+
+  // Toggle exercise selection
+  const toggleExerciseSelection = (exerciseId: string) => {
+    setSelectedExerciseIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(exerciseId)) {
+        newSet.delete(exerciseId);
+      } else {
+        newSet.add(exerciseId);
+      }
+      return newSet;
+    });
+  };
+
+  // Add all selected exercises
+  const addSelectedExercises = () => {
+    const selectedExercises = availableExercises.filter(ex => selectedExerciseIds.has(ex.id));
+    const newExercises: ExerciseData[] = selectedExercises.map(exercise => ({
+      id: generateId(),
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      sets: [createEmptySet()],
+      isExpanded: true,
+      notes: '',
+      isDumbbell: exercise.equipmentType === 'dumbbell',
+      dumbbellMode: exercise.equipmentType === 'dumbbell' ? 'paired' : undefined,
+    }));
+    setExercises([...exercises, ...newExercises]);
+    setShowExerciseSearch(false);
+    setSearchQuery('');
+    setSelectedExerciseIds(new Set());
+  };
 
   const addExercise = (exercise: Exercise) => {
     const newExercise: ExerciseData = {
@@ -143,8 +249,8 @@ export default function NewWorkoutPage() {
       sets: [createEmptySet()],
       isExpanded: true,
       notes: '',
-      isDumbbell: exercise.equipment === 'dumbbell',
-      dumbbellMode: exercise.equipment === 'dumbbell' ? 'paired' : undefined,
+      isDumbbell: exercise.equipmentType === 'dumbbell',
+      dumbbellMode: exercise.equipmentType === 'dumbbell' ? 'paired' : undefined,
     };
     setExercises([...exercises, newExercise]);
     setShowExerciseSearch(false);
@@ -565,16 +671,27 @@ export default function NewWorkoutPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Add Exercise</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowExerciseSearch(false);
-                    setSearchQuery('');
-                  }}
-                >
-                  Cancel
-                </Button>
+                <div className="flex items-center gap-2">
+                  {selectedExerciseIds.size > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={addSelectedExercises}
+                    >
+                      Add {selectedExerciseIds.size} Exercise{selectedExerciseIds.size > 1 ? 's' : ''}
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowExerciseSearch(false);
+                      setSearchQuery('');
+                      setSelectedExerciseIds(new Set());
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -588,27 +705,62 @@ export default function NewWorkoutPage() {
                   autoFocus
                 />
               </div>
-              <div className="max-h-64 overflow-y-auto space-y-1">
+              <div className="max-h-80 overflow-y-auto space-y-4">
                 {isLoadingExercises ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
-                ) : filteredExercises.length > 0 ? (
-                  filteredExercises.map((exercise) => (
-                    <button
-                      key={exercise.id}
-                      className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                      onClick={() => addExercise(exercise)}
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{exercise.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {exercise.primaryMuscle} • {exercise.equipment}
-                        </p>
+                ) : sortedMuscleGroups.length > 0 ? (
+                  sortedMuscleGroups.map((muscleGroup) => {
+                    const isRecommended = workoutType && workoutTypeRelevance[workoutType]?.muscles
+                      .map(m => m.charAt(0).toUpperCase() + m.slice(1))
+                      .includes(muscleGroup);
+                    
+                    return (
+                      <div key={muscleGroup}>
+                        <h4 className={cn(
+                          "text-xs font-semibold uppercase tracking-wider mb-2 px-1 flex items-center gap-2",
+                          isRecommended ? "text-primary" : "text-muted-foreground"
+                        )}>
+                          {muscleGroup}
+                          {isRecommended && (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary normal-case tracking-normal">
+                              Recommended
+                            </span>
+                          )}
+                        </h4>
+                        <div className="space-y-1">
+                          {groupedExercises[muscleGroup].map((exercise) => {
+                            const isSelected = selectedExerciseIds.has(exercise.id);
+                            return (
+                              <button
+                                key={exercise.id}
+                                className={cn(
+                                  "w-full flex items-center justify-between p-3 rounded-lg transition-colors text-left",
+                                  isSelected ? "bg-primary/10 border border-primary" : "hover:bg-muted"
+                                )}
+                                onClick={() => toggleExerciseSelection(exercise.id)}
+                              >
+                                <div>
+                                  <p className="font-medium text-sm">{exercise.name}</p>
+                                  <p className="text-xs text-muted-foreground capitalize">
+                                    {exercise.equipmentType.replace('_', ' ')} • {exercise.movementPattern || 'General'}
+                                  </p>
+                                </div>
+                                {isSelected ? (
+                                  <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                    <Check className="h-3 w-3 text-primary-foreground" />
+                                  </div>
+                                ) : (
+                                  <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <Plus className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-center text-sm text-muted-foreground py-4">
                     No exercises found

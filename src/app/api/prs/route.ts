@@ -76,3 +76,79 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// POST - Create initial PR records (used during onboarding)
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const { prs } = body as { prs: Array<{ exerciseName: string; estimated1RM: number }> };
+
+    if (!prs || !Array.isArray(prs)) {
+      return NextResponse.json({ error: 'Invalid PR data' }, { status: 400 });
+    }
+
+    const createdPRs = [];
+
+    for (const pr of prs) {
+      if (!pr.exerciseName || !pr.estimated1RM || pr.estimated1RM <= 0) {
+        continue;
+      }
+
+      // Find the exercise by name
+      const exercise = await db.exercise.findFirst({
+        where: { name: pr.exerciseName },
+      });
+
+      if (!exercise) {
+        console.warn(`Exercise not found: ${pr.exerciseName}`);
+        continue;
+      }
+
+      // Create PR record (1 rep at the 1RM weight)
+      const prRecord = await db.pRRecord.create({
+        data: {
+          userId: user.id,
+          exerciseId: exercise.id,
+          weight: pr.estimated1RM,
+          reps: 1,
+          estimated1RM: pr.estimated1RM,
+          date: new Date(),
+        },
+        include: { exercise: true },
+      });
+
+      createdPRs.push(prRecord);
+
+      // Note: Muscle group scores are calculated dynamically in /api/stats
+      // based on PRs, so no additional updates needed here
+    }
+
+    return NextResponse.json({
+      success: true,
+      createdPRs: createdPRs.map(pr => ({
+        exercise: pr.exercise.name,
+        estimated1RM: pr.estimated1RM,
+      })),
+    });
+  } catch (error) {
+    console.error('Error creating PRs:', error);
+    return NextResponse.json(
+      { error: 'Failed to create PRs' },
+      { status: 500 }
+    );
+  }
+}

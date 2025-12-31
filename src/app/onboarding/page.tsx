@@ -126,7 +126,8 @@ export default function OnboardingPage() {
       const height = parseFloat(data.heightCm) || null;
       const bodyWeight = parseFloat(data.weightKg) || null;
 
-      const res = await fetch('/api/profile', {
+      // Save profile
+      const profileRes = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,13 +142,52 @@ export default function OnboardingPage() {
         }),
       });
 
-      if (res.ok) {
-        router.push('/dashboard');
-      } else {
-        const errorData = await res.json();
+      if (!profileRes.ok) {
+        const errorData = await profileRes.json();
         setError(errorData.error || 'Failed to save profile. Please try again.');
         console.error('Failed to save profile:', errorData);
+        return;
       }
+
+      // Save initial PRs if provided (convert from lb to kg if needed)
+      const conversionFactor = isMetric ? 1 : 0.453592; // lb to kg
+      const prs: Array<{ exerciseName: string; estimated1RM: number }> = [];
+
+      if (data.benchPress1RM && parseFloat(data.benchPress1RM) > 0) {
+        prs.push({
+          exerciseName: 'Barbell Bench Press',
+          estimated1RM: parseFloat(data.benchPress1RM) * conversionFactor,
+        });
+      }
+
+      if (data.squat1RM && parseFloat(data.squat1RM) > 0) {
+        prs.push({
+          exerciseName: 'Barbell Back Squat',
+          estimated1RM: parseFloat(data.squat1RM) * conversionFactor,
+        });
+      }
+
+      if (data.deadlift1RM && parseFloat(data.deadlift1RM) > 0) {
+        prs.push({
+          exerciseName: 'Barbell Deadlift',
+          estimated1RM: parseFloat(data.deadlift1RM) * conversionFactor,
+        });
+      }
+
+      // Only save PRs if user provided any
+      if (prs.length > 0) {
+        const prRes = await fetch('/api/prs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prs }),
+        });
+
+        if (!prRes.ok) {
+          console.warn('Failed to save initial PRs, continuing anyway');
+        }
+      }
+
+      router.push('/dashboard');
     } catch (err) {
       setError('Something went wrong. Please try again.');
       console.error('Failed to save profile:', err);
