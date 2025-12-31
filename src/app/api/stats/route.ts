@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
 
       let weightedScoreSum = 0;
       let totalWeight = 0;
+      let maxContribution = 0; // Track the highest contribution percentage
 
       for (const exercise of exercisesForMuscle) {
         const bestPR = await db.pRRecord.findFirst({
@@ -103,14 +104,31 @@ export async function GET(request: NextRequest) {
           const contribution = exercise.muscleContributions[0]?.contributionPercentage ?? 50;
           const weight = contribution / 100;
           
+          // Track the highest contribution for scaling
+          if (contribution > maxContribution) {
+            maxContribution = contribution;
+          }
+          
           weightedScoreSum += score * weight;
           totalWeight += weight;
         }
       }
 
-      // Weighted average score for muscle group (0-100)
+      // Calculate weighted average, then apply a scaling factor based on max contribution
+      // This ensures secondary-only training (low contribution %) can't give high scores
+      // Scale factor: reaches 1.0 only when you've trained an exercise with 60%+ contribution
+      // Formula: scaleFactor = min(1.0, maxContribution / 60)
+      // Examples:
+      //   - 15% contribution (bench for shoulders) → 0.25 scale
+      //   - 25% contribution (row for biceps) → 0.42 scale
+      //   - 30% contribution (squat for glutes) → 0.50 scale
+      //   - 50% contribution (primary) → 0.83 scale
+      //   - 60%+ contribution → 1.0 scale (full score)
+      const scaleFactor = Math.min(1.0, maxContribution / 60);
+      
+      const rawScore = totalWeight > 0 ? weightedScoreSum / totalWeight : 0;
       muscleScores[mg.name.toLowerCase()] = totalWeight > 0 
-        ? Math.min(100, Math.round(weightedScoreSum / totalWeight)) 
+        ? Math.min(100, Math.round(rawScore * scaleFactor)) 
         : 0;
 
       // Calculate recovery state
