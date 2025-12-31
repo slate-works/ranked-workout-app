@@ -56,23 +56,28 @@ export async function GET(request: NextRequest) {
     const muscleRecovery: Record<string, number> = {};
 
     for (const mg of muscleGroups) {
-      // Get the best PR for exercises targeting this muscle group
+      // Get all exercises that contribute to this muscle group (primary or secondary)
+      // We use a minimum threshold of 10% to filter out negligible contributions
       const exercisesForMuscle = await db.exercise.findMany({
         where: {
           muscleContributions: {
             some: {
               muscleGroupId: mg.id,
-              contributionPercentage: { gte: 50 }, // Primary muscles only
+              contributionPercentage: { gte: 10 }, // Include secondary muscles (10%+)
             },
           },
         },
         include: {
-          muscleContributions: true,
+          muscleContributions: {
+            where: {
+              muscleGroupId: mg.id,
+            },
+          },
         },
       });
 
-      let totalScore = 0;
-      let scoreCount = 0;
+      let weightedScoreSum = 0;
+      let totalWeight = 0;
 
       for (const exercise of exercisesForMuscle) {
         const bestPR = await db.pRRecord.findFirst({
@@ -92,14 +97,20 @@ export async function GET(request: NextRequest) {
             calculateAge(user.profile.birthDate),
             exercise.strengthStandard || 1.0
           );
-          totalScore += score;
-          scoreCount++;
+          
+          // Weight the score by the exercise's contribution percentage to this muscle
+          // e.g., Squat contributes 30% to glutes, so its score is weighted at 0.3
+          const contribution = exercise.muscleContributions[0]?.contributionPercentage ?? 50;
+          const weight = contribution / 100;
+          
+          weightedScoreSum += score * weight;
+          totalWeight += weight;
         }
       }
 
-      // Average score for muscle group (0-100)
-      muscleScores[mg.name.toLowerCase()] = scoreCount > 0 
-        ? Math.min(100, Math.round(totalScore / scoreCount)) 
+      // Weighted average score for muscle group (0-100)
+      muscleScores[mg.name.toLowerCase()] = totalWeight > 0 
+        ? Math.min(100, Math.round(weightedScoreSum / totalWeight)) 
         : 0;
 
       // Calculate recovery state
