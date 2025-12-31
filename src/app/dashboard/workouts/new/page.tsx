@@ -333,6 +333,7 @@ export default function NewWorkoutPage() {
             .map((s) => ({
               reps: parseInt(s.reps),
               weight: parseFloat(s.weight),
+              weightUnit: 'lb',
               rpe: s.rpe ? parseFloat(s.rpe) : null,
               isWarmup: s.isWarmup,
               isDumbbellPair: ex.dumbbellMode === 'paired',
@@ -560,7 +561,7 @@ export default function NewWorkoutPage() {
                 {/* Sets header */}
                 <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground font-medium px-2">
                   <div className="col-span-1">Set</div>
-                  <div className="col-span-3">Weight</div>
+                  <div className="col-span-3">Weight (lb)</div>
                   <div className="col-span-3">Reps</div>
                   <div className="col-span-2">RPE</div>
                   <div className="col-span-3"></div>

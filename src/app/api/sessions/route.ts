@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
                 setNumber: setIndex + 1,
                 reps: set.reps,
                 weight: set.weight,
-                weightUnit: set.weightUnit || 'kg',
+                weightUnit: set.weightUnit || 'lb',
                 rpe: set.rpe || null,
                 rir: set.rir || null,
                 isDumbbellPair: set.isDumbbellPair || false,

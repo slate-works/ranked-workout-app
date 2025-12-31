@@ -69,7 +69,7 @@ const defaultFormData: ProfileData = {
     birthDate: '',
     bodyWeight: 70,
     height: 170,
-    weightUnit: 'kg',
+    weightUnit: 'lb',
     heightUnit: 'cm',
   },
   preferences: {
@@ -124,7 +124,7 @@ export default function ProfilePage() {
               : '',
             bodyWeight: profileData.profile?.bodyWeight || 70,
             height: profileData.profile?.height || 170,
-            weightUnit: profileData.profile?.weightUnit || 'kg',
+            weightUnit: profileData.profile?.weightUnit || 'lb',
             heightUnit: profileData.profile?.heightUnit || 'cm',
           },
           preferences: {

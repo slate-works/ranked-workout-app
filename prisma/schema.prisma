@@ -89,11 +89,11 @@ model Profile {
   birthDate       DateTime?
   sex             String?  // "male" | "female" | "other"
   height          Float?   // In user's preferred unit
-  heightUnit      String   @default("cm") // "cm" | "in"
+  heightUnit      String   @default("in") // "cm" | "in"
   bodyWeight      Float?   // In user's preferred unit
-  weightUnit      String   @default("kg") // "kg" | "lb"
+  weightUnit      String   @default("lb") // "kg" | "lb"
   trainingAgeYears Float?  // How long they've been lifting
-  preferredUnits  String   @default("kg") // "kg" | "lb"
+  preferredUnits  String   @default("lb") // "kg" | "lb"
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -208,7 +208,7 @@ model SetLog {
   setNumber     Int
   reps          Int
   weight        Float
-  weightUnit    String      @default("kg") // "kg" | "lb"
+  weightUnit    String      @default("lb") // "kg" | "lb"
   rpe           Float?      // Rating of Perceived Exertion (1-10)
   rir           Int?        // Reps in Reserve (0-10)
   isWarmup      Boolean     @default(false)

@@ -92,7 +92,7 @@ export default function WorkoutsPage() {
             return {
               name: ex.exercise.name,
               sets: workingSets.length,
-              topSet: topSet ? `${topSet.weight}kg x ${topSet.reps}` : '-',
+              topSet: topSet ? `${topSet.weight}lb x ${topSet.reps}` : '-',
             };
           });
 
@@ -222,7 +222,7 @@ export default function WorkoutsPage() {
                     ? (workouts.reduce((acc, w) => acc + w.volume, 0) / 1000).toFixed(1)
                     : 0}k
                 </p>
-                <p className="text-xs text-muted-foreground">Volume (kg)</p>
+                <p className="text-xs text-muted-foreground">Volume (lb)</p>
               </CardContent>
             </Card>
           </div>

@@ -220,7 +220,7 @@ export default function DashboardPage() {
                       ? `${(stats.stats.weeklyVolume / 1000).toFixed(1)}k`
                       : '0'}
                   </p>
-                  <span className="text-xs text-muted-foreground">kg</span>
+                  <span className="text-xs text-muted-foreground">lb</span>
                 </div>
               </div>
             </div>
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-primary">{Math.round(pr.estimated1RM)}kg</p>
+                      <p className="font-bold text-primary">{Math.round(pr.estimated1RM)}lb</p>
                       <p className="text-xs text-muted-foreground">Est. 1RM</p>
                     </div>
                   </div>

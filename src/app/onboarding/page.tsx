@@ -63,7 +63,7 @@ export default function OnboardingPage() {
     heightCm: '',
     weightKg: '',
     trainingAgeYears: '',
-    preferredUnits: 'kg',
+    preferredUnits: 'lb',
     benchPress1RM: '',
     squat1RM: '',
     deadlift1RM: '',

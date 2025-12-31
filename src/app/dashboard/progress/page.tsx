@@ -195,7 +195,7 @@ export default function ProgressPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{Math.round(pr.estimated1RM)}kg</p>
+                    <p className="font-medium">{Math.round(pr.estimated1RM)}lb</p>
                     <p className="text-xs text-muted-foreground">Est. 1RM</p>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function ProgressPage() {
                   ? `${(stats.stats.weeklyVolume / 1000).toFixed(1)}k`
                   : '0'}
               </p>
-              <p className="text-sm text-muted-foreground">Weekly Volume (kg)</p>
+              <p className="text-sm text-muted-foreground">Weekly Volume (lb)</p>
             </div>
           </div>
         </CardContent>
