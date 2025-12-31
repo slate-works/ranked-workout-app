@@ -1,0 +1,280 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION (NextAuth compatible)
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts          Account[]
+  authSessions      AuthSession[]
+
+  // App relations
+  profile           Profile?
+  sessions          Session[]
+  bodyweightEntries BodyweightEntry[]
+  prRecords         PRRecord[]
+  muscleGroupScores MuscleGroupScoreSnapshot[]
+  recoveryStates    RecoveryStateSnapshot[]
+}
+
+// NextAuth Account model for OAuth providers
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// NextAuth Session model
+model AuthSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth Verification Token
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Profile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  age             Int?
+  sex             String?  // "male" | "female" | "other"
+  heightCm        Float?
+  weightKg        Float?
+  trainingAgeYears Float?  // How long they've been lifting
+  preferredUnits  String   @default("kg") // "kg" | "lb"
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model BodyweightEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weightKg  Float
+  date      DateTime @default(now())
+  notes     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+// ============================================================================
+// EXERCISE LIBRARY
+// ============================================================================
+
+model Exercise {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  equipmentType   String   // "barbell" | "dumbbell" | "machine" | "cable" | "bodyweight"
+  movementPattern String?  // "push" | "pull" | "squat" | "hinge" | "carry" | "isolation"
+
+  // Muscle group mappings with contribution percentages
+  muscleGroups    ExerciseMuscleGroup[]
+  exerciseLogs    ExerciseLog[]
+  prRecords       PRRecord[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model MuscleGroup {
+  id        String   @id @default(cuid())
+  name      String   @unique // "chest" | "back" | "shoulders" | "biceps" | "triceps" | "quads" | "hamstrings" | "glutes" | "calves" | "core"
+  bodyArea  String   // "upper" | "lower" | "core"
+
+  exercises         ExerciseMuscleGroup[]
+  scoreSnapshots    MuscleGroupScoreSnapshot[]
+  recoverySnapshots RecoveryStateSnapshot[]
+}
+
+model ExerciseMuscleGroup {
+  id            String      @id @default(cuid())
+  exerciseId    String
+  exercise      Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  muscleGroupId String
+  muscleGroup   MuscleGroup @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
+
+  isPrimary     Boolean     @default(false)
+  contribution  Float       @default(0.5) // 0.0 - 1.0 fractional contribution
+
+  @@unique([exerciseId, muscleGroupId])
+}
+
+// ============================================================================
+// WORKOUT LOGGING
+// ============================================================================
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date        DateTime @default(now())
+  workoutType String?  // "push" | "pull" | "legs" | "upper" | "lower" | "full_body" | "custom"
+  name        String?  // Optional custom session name
+  notes       String?
+  durationMin Int?     // Session duration in minutes
+  sessionRpe  Float?   // Overall session RPE (1-10)
+
+  exerciseLogs ExerciseLog[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, date])
+}
+
+model ExerciseLog {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+
+  orderIndex  Int      @default(0) // Order in the session
+  notes       String?
+
+  sets        SetLog[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sessionId])
+}
+
+model SetLog {
+  id            String      @id @default(cuid())
+  exerciseLogId String
+  exerciseLog   ExerciseLog @relation(fields: [exerciseLogId], references: [id], onDelete: Cascade)
+
+  setNumber     Int
+  reps          Int
+  weightKg      Float
+  rpe           Float?      // Rating of Perceived Exertion (1-10)
+  rir           Int?        // Reps in Reserve (0-10)
+  isWarmup      Boolean     @default(false)
+  isDumbbell    Boolean     @default(false)
+  dumbbellMode  String?     // "single" | "paired" - for dumbbell exercises
+
+  // Calculated fields (can be stored for quick access)
+  estimated1RM  Float?
+
+  restTimeSec   Int?        // Rest time after this set in seconds
+
+  createdAt     DateTime    @default(now())
+
+  @@index([exerciseLogId])
+}
+
+// ============================================================================
+// PR TRACKING
+// ============================================================================
+
+model PRRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+
+  prType      String   // "estimated_1rm" | "load" | "reps_at_load"
+  value       Float    // The PR value
+  reps        Int?     // For reps_at_load PR type
+  weightKg    Float?   // For reps_at_load PR type
+
+  achievedAt  DateTime @default(now())
+
+  @@index([userId, exerciseId, prType])
+}
+
+// ============================================================================
+// SCORING & RANKING
+// ============================================================================
+
+model MuscleGroupScoreSnapshot {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muscleGroupId String
+  muscleGroup   MuscleGroup @relation(fields: [muscleGroupId], references: [id])
+
+  score         Float       // 0-100 score
+  rank          String      // "bronze" | "silver" | "gold" | "diamond" | "champion" | "elite" | "unreal"
+  weekNumber    Int         // ISO week number
+  year          Int
+
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, muscleGroupId, year, weekNumber])
+  @@index([userId, muscleGroupId])
+}
+
+// ============================================================================
+// RECOVERY TRACKING
+// ============================================================================
+
+model RecoveryStateSnapshot {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muscleGroupId String
+  muscleGroup   MuscleGroup @relation(fields: [muscleGroupId], references: [id])
+
+  recoveryFraction Float    // 0.0 - 1.0
+  status           String   // "need_recovery" | "recovering" | "ready"
+  lastTrainedAt    DateTime?
+  projectedReadyAt DateTime?
+
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, muscleGroupId])
+  @@index([userId])
+}

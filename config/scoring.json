@@ -1,0 +1,139 @@
+{
+  "$schema": "./scoring.schema.json",
+  "version": "1.0.0",
+  
+  "rankTiers": {
+    "bronze": { "min": 0, "max": 20, "color": "#CD7F32" },
+    "silver": { "min": 20, "max": 40, "color": "#C0C0C0" },
+    "gold": { "min": 40, "max": 55, "color": "#FFD700" },
+    "diamond": { "min": 55, "max": 70, "color": "#B9F2FF" },
+    "champion": { "min": 70, "max": 82, "color": "#9B59B6" },
+    "elite": { "min": 82, "max": 92, "color": "#E74C3C" },
+    "unreal": { "min": 92, "max": 100, "color": "#FF00FF" }
+  },
+
+  "scoring": {
+    "allometricExponent": 0.67,
+    "baseScoreMultiplier": 50,
+    "baseScoreOffset": 25,
+    "maxScore": 100,
+    "minScore": 0
+  },
+
+  "oneRmEstimation": {
+    "defaultMethod": "brzycki",
+    "methods": {
+      "brzycki": {
+        "formula": "load / (1.0278 - 0.0278 * reps)",
+        "accurateRepRange": [1, 10],
+        "description": "Brzycki equation - good for 1-10 reps"
+      },
+      "epley": {
+        "formula": "load * (1 + 0.0333 * reps)",
+        "accurateRepRange": [1, 10],
+        "description": "Epley equation - similar accuracy to Brzycki"
+      }
+    },
+    "lowConfidenceThreshold": 10
+  },
+
+  "rirToPercentage": {
+    "0": 1.00,
+    "1": 0.97,
+    "2": 0.93,
+    "3": 0.89,
+    "4": 0.85
+  },
+
+  "ageAdjustmentFactors": {
+    "18-24": 0.90,
+    "25-35": 1.00,
+    "36-45": 0.98,
+    "46-55": 0.90,
+    "56-65": 0.80,
+    "65+": 0.65
+  },
+
+  "volumeLandmarks": {
+    "novice": {
+      "trainingAgeYears": [0, 1],
+      "MEV": 8,
+      "MAV": [12, 16],
+      "MRV": 20
+    },
+    "intermediate": {
+      "trainingAgeYears": [1, 3],
+      "MEV": 10,
+      "MAV": [15, 20],
+      "MRV": 25
+    },
+    "advanced": {
+      "trainingAgeYears": [3, null],
+      "MEV": 12,
+      "MAV": [20, 30],
+      "MRV": 35
+    }
+  },
+
+  "recovery": {
+    "states": {
+      "need_recovery": { "max": 0.50 },
+      "recovering": { "min": 0.50, "max": 0.80 },
+      "ready": { "min": 0.80 }
+    },
+    "baseTauHours": {
+      "5": 12,
+      "6": 12,
+      "7": 24,
+      "8": 36,
+      "9": 48,
+      "10": 72
+    },
+    "multipliers": {
+      "exerciseType": {
+        "compound": 1.2,
+        "isolation": 1.0
+      },
+      "eccentricHeavy": 1.3,
+      "trainingAge": {
+        "novice": 1.3,
+        "intermediate": 1.0,
+        "advanced": 0.85,
+        "expert": 0.75
+      },
+      "sleepHours": {
+        "8+": 0.92,
+        "7-8": 0.95,
+        "6-7": 1.0,
+        "5-6": 1.15,
+        "<5": 1.25
+      }
+    }
+  },
+
+  "decay": {
+    "model": "power_law",
+    "alpha": 0.6,
+    "minRetention": 0.1,
+    "tauHalfDays": {
+      "youngNovice": 18,
+      "youngTrained": 42,
+      "olderNovice": 15,
+      "olderTrained": 28
+    },
+    "ageThreshold": 65
+  },
+
+  "streaks": {
+    "restDaysAllowed": 2,
+    "minSessionsPerWeek": 3
+  },
+
+  "milestones": {
+    "clubs": [
+      { "name": "500lb Club", "description": "Squat + Bench + Deadlift total >= 500lb", "totalLb": 500 },
+      { "name": "1000lb Club", "description": "Squat + Bench + Deadlift total >= 1000lb", "totalLb": 1000 },
+      { "name": "1500lb Club", "description": "Squat + Bench + Deadlift total >= 1500lb", "totalLb": 1500 }
+    ]
+  }
+}

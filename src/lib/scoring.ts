@@ -1,0 +1,393 @@
+import scoringConfig from '@/../config/scoring.json';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type RankTier = 'bronze' | 'silver' | 'gold' | 'diamond' | 'champion' | 'elite' | 'unreal';
+
+export interface RankInfo {
+  tier: RankTier;
+  score: number;
+  color: string;
+}
+
+export interface RecoveryState {
+  fraction: number;
+  status: 'need_recovery' | 'recovering' | 'ready';
+  tauHours: number;
+}
+
+// ============================================================================
+// 1RM ESTIMATION
+// ============================================================================
+
+/**
+ * Brzycki equation for 1RM estimation (accurate for 1-10 reps)
+ */
+export function brzycki1RM(loadKg: number, reps: number): number {
+  if (reps <= 0) return 0;
+  if (reps === 1) return loadKg;
+  return loadKg / (1.0278 - 0.0278 * reps);
+}
+
+/**
+ * Epley equation for 1RM estimation
+ */
+export function epley1RM(loadKg: number, reps: number): number {
+  if (reps <= 0) return 0;
+  if (reps === 1) return loadKg;
+  return loadKg * (1 + 0.0333 * reps);
+}
+
+/**
+ * Estimate 1RM from RIR (Reps in Reserve)
+ */
+export function rirBased1RM(loadKg: number, rir: number): number {
+  const percentages = scoringConfig.rirToPercentage as Record<string, number>;
+  const pct = percentages[rir.toString()] ?? 0.85;
+  return loadKg / pct;
+}
+
+/**
+ * Estimate 1RM using the configured default method
+ */
+export function estimate1RM(loadKg: number, reps: number, rir?: number): number {
+  // If RIR is provided and reps is 1, use RIR-based estimation
+  if (rir !== undefined && reps === 1) {
+    return rirBased1RM(loadKg, rir);
+  }
+
+  const method = scoringConfig.oneRmEstimation.defaultMethod;
+  if (method === 'epley') {
+    return epley1RM(loadKg, reps);
+  }
+  return brzycki1RM(loadKg, reps);
+}
+
+/**
+ * Check if 1RM estimate has low confidence (reps > threshold)
+ */
+export function isLowConfidence1RM(reps: number): boolean {
+  return reps > scoringConfig.oneRmEstimation.lowConfidenceThreshold;
+}
+
+// ============================================================================
+// RELATIVE STRENGTH & SCALING
+// ============================================================================
+
+/**
+ * Calculate allometric relative strength
+ * Strength scales with cross-sectional area (~BW^0.67)
+ */
+export function allometricRelativeStrength(oneRmKg: number, bodyweightKg: number): number {
+  const exponent = scoringConfig.scoring.allometricExponent;
+  return oneRmKg / Math.pow(bodyweightKg, exponent);
+}
+
+/**
+ * Get age adjustment factor for cross-age comparison
+ */
+export function getAgeAdjustmentFactor(age: number): number {
+  const factors = scoringConfig.ageAdjustmentFactors;
+  
+  if (age >= 65) return factors['65+'];
+  if (age >= 56) return factors['56-65'];
+  if (age >= 46) return factors['46-55'];
+  if (age >= 36) return factors['36-45'];
+  if (age >= 25) return factors['25-35'];
+  return factors['18-24'];
+}
+
+// ============================================================================
+// STRENGTH SCORES
+// ============================================================================
+
+/**
+ * Calculate exercise strength score (0-100) from relative strength
+ */
+export function exerciseStrengthScore(relStrength: number, relNorm: number): number {
+  if (relNorm <= 0) return 0;
+  
+  const ratio = relStrength / relNorm;
+  const { baseScoreMultiplier, baseScoreOffset, maxScore, minScore } = scoringConfig.scoring;
+  
+  const score = baseScoreMultiplier * ratio + baseScoreOffset;
+  return Math.max(minScore, Math.min(maxScore, score));
+}
+
+/**
+ * Calculate volume-weighted muscle group score
+ */
+export function muscleGroupScore(exerciseScores: number[], volumeWeights: number[]): number {
+  if (exerciseScores.length === 0 || volumeWeights.length === 0) return 0;
+  
+  const totalWeight = volumeWeights.reduce((a, b) => a + b, 0);
+  if (totalWeight === 0) return 0;
+  
+  const weightedSum = exerciseScores.reduce(
+    (sum, score, i) => sum + score * (volumeWeights[i] ?? 0),
+    0
+  );
+  
+  return weightedSum / totalWeight;
+}
+
+/**
+ * Calculate overall score from muscle group scores
+ */
+export function overallScore(muscleGroupScores: number[]): number {
+  if (muscleGroupScores.length === 0) return 0;
+  return muscleGroupScores.reduce((a, b) => a + b, 0) / muscleGroupScores.length;
+}
+
+// ============================================================================
+// RANKING
+// ============================================================================
+
+/**
+ * Get rank tier from numeric score
+ */
+export function getRankTier(score: number): RankTier {
+  const tiers = scoringConfig.rankTiers;
+  
+  if (score >= tiers.unreal.min) return 'unreal';
+  if (score >= tiers.elite.min) return 'elite';
+  if (score >= tiers.champion.min) return 'champion';
+  if (score >= tiers.diamond.min) return 'diamond';
+  if (score >= tiers.gold.min) return 'gold';
+  if (score >= tiers.silver.min) return 'silver';
+  return 'bronze';
+}
+
+/**
+ * Get full rank information including tier, score, and color
+ */
+export function getRankInfo(score: number): RankInfo {
+  const tier = getRankTier(score);
+  const tierConfig = scoringConfig.rankTiers[tier];
+  
+  return {
+    tier,
+    score,
+    color: tierConfig.color,
+  };
+}
+
+/**
+ * Get all rank tier thresholds
+ */
+export function getRankThresholds() {
+  return scoringConfig.rankTiers;
+}
+
+// ============================================================================
+// RECOVERY MODEL
+// ============================================================================
+
+/**
+ * Get base recovery tau (time constant) from session RPE
+ */
+function getBaseTauHours(sessionRpe: number): number {
+  const baseTau = scoringConfig.recovery.baseTauHours as Record<string, number>;
+  const rpe = Math.round(Math.max(5, Math.min(10, sessionRpe)));
+  return baseTau[rpe.toString()] ?? 36;
+}
+
+/**
+ * Get exercise type multiplier for recovery
+ */
+function getExerciseTypeMultiplier(isCompound: boolean): number {
+  const { exerciseType } = scoringConfig.recovery.multipliers;
+  return isCompound ? exerciseType.compound : exerciseType.isolation;
+}
+
+/**
+ * Get training age multiplier for recovery
+ */
+function getTrainingAgeMultiplier(trainingAgeYears: number): number {
+  const { trainingAge } = scoringConfig.recovery.multipliers;
+  
+  if (trainingAgeYears < 1) return trainingAge.novice;
+  if (trainingAgeYears < 3) return trainingAge.intermediate;
+  if (trainingAgeYears < 5) return trainingAge.advanced;
+  return trainingAge.expert;
+}
+
+/**
+ * Get sleep multiplier for recovery
+ */
+function getSleepMultiplier(sleepHours: number): number {
+  const { sleepHours: sleepConfig } = scoringConfig.recovery.multipliers;
+  
+  if (sleepHours >= 8) return sleepConfig['8+'];
+  if (sleepHours >= 7) return sleepConfig['7-8'];
+  if (sleepHours >= 6) return sleepConfig['6-7'];
+  if (sleepHours >= 5) return sleepConfig['5-6'];
+  return sleepConfig['<5'];
+}
+
+/**
+ * Calculate adjusted tau (time constant) for recovery
+ */
+export function adjustedTauHours(
+  sessionRpe: number,
+  isCompound: boolean = true,
+  isEccentricHeavy: boolean = false,
+  trainingAgeYears: number = 1,
+  sleepHours: number = 7
+): number {
+  const baseTau = getBaseTauHours(sessionRpe);
+  
+  let tau = baseTau;
+  tau *= getExerciseTypeMultiplier(isCompound);
+  tau *= isEccentricHeavy ? scoringConfig.recovery.multipliers.eccentricHeavy : 1;
+  tau *= getTrainingAgeMultiplier(trainingAgeYears);
+  tau *= getSleepMultiplier(sleepHours);
+  
+  return tau;
+}
+
+/**
+ * Calculate recovery fraction (0-1) based on time since session
+ */
+export function recoveryFraction(hoursSinceSession: number, tauHours: number): number {
+  return 1 - Math.exp(-hoursSinceSession / tauHours);
+}
+
+/**
+ * Get recovery status from recovery fraction
+ */
+export function getRecoveryStatus(fraction: number): 'need_recovery' | 'recovering' | 'ready' {
+  const { states } = scoringConfig.recovery;
+  
+  if (fraction < states.need_recovery.max) return 'need_recovery';
+  if (fraction < states.recovering.max) return 'recovering';
+  return 'ready';
+}
+
+/**
+ * Calculate full recovery state
+ */
+export function calculateRecoveryState(
+  hoursSinceSession: number,
+  sessionRpe: number,
+  options?: {
+    isCompound?: boolean;
+    isEccentricHeavy?: boolean;
+    trainingAgeYears?: number;
+    sleepHours?: number;
+  }
+): RecoveryState {
+  const tau = adjustedTauHours(
+    sessionRpe,
+    options?.isCompound ?? true,
+    options?.isEccentricHeavy ?? false,
+    options?.trainingAgeYears ?? 1,
+    options?.sleepHours ?? 7
+  );
+  
+  const fraction = recoveryFraction(hoursSinceSession, tau);
+  const status = getRecoveryStatus(fraction);
+  
+  return { fraction, status, tauHours: tau };
+}
+
+// ============================================================================
+// DETRAINING & RANK DECAY
+// ============================================================================
+
+/**
+ * Get detraining tau (half-life in days) based on age and training experience
+ */
+export function getDetrainingTauHalf(age: number, trainingAgeYears: number): number {
+  const { tauHalfDays, ageThreshold } = scoringConfig.decay;
+  
+  const isOlder = age >= ageThreshold;
+  const isTrained = trainingAgeYears >= 1;
+  
+  if (isOlder) {
+    return isTrained ? tauHalfDays.olderTrained : tauHalfDays.olderNovice;
+  }
+  return isTrained ? tauHalfDays.youngTrained : tauHalfDays.youngNovice;
+}
+
+/**
+ * Calculate decay factor (0-1) for score reduction due to inactivity
+ * Uses power-law decay model
+ */
+export function detrainingDecayFactor(
+  daysInactive: number,
+  age: number,
+  trainingAgeYears: number
+): number {
+  const tau = getDetrainingTauHalf(age, trainingAgeYears);
+  const { alpha, minRetention } = scoringConfig.decay;
+  
+  if (daysInactive <= 0) return 1.0;
+  if (daysInactive >= 2 * tau) return minRetention;
+  
+  const phi = 1 - Math.pow(daysInactive / tau, alpha);
+  return Math.max(minRetention, Math.min(1.0, phi));
+}
+
+/**
+ * Apply decay to a score based on inactivity
+ */
+export function applyDecay(
+  score: number,
+  daysInactive: number,
+  age: number,
+  trainingAgeYears: number
+): number {
+  const factor = detrainingDecayFactor(daysInactive, age, trainingAgeYears);
+  return score * factor;
+}
+
+// ============================================================================
+// VOLUME CALCULATIONS
+// ============================================================================
+
+/**
+ * Get training level based on training age
+ */
+export function getTrainingLevel(trainingAgeYears: number): 'novice' | 'intermediate' | 'advanced' {
+  if (trainingAgeYears < 1) return 'novice';
+  if (trainingAgeYears < 3) return 'intermediate';
+  return 'advanced';
+}
+
+/**
+ * Get volume landmarks for a training level
+ */
+export function getVolumeLandmarks(trainingAgeYears: number) {
+  const level = getTrainingLevel(trainingAgeYears);
+  return scoringConfig.volumeLandmarks[level];
+}
+
+/**
+ * Calculate volume load for a set
+ */
+export function volumeLoad(sets: number, reps: number, loadKg: number): number {
+  return sets * reps * loadKg;
+}
+
+// ============================================================================
+// UNIT CONVERSIONS
+// ============================================================================
+
+export function kgToLb(kg: number): number {
+  return kg * 2.20462;
+}
+
+export function lbToKg(lb: number): number {
+  return lb / 2.20462;
+}
+
+export function cmToInches(cm: number): number {
+  return cm / 2.54;
+}
+
+export function inchesToCm(inches: number): number {
+  return inches * 2.54;
+}
