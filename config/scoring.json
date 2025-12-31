@@ -15,7 +15,7 @@
   "scoring": {
     "allometricExponent": 0.67,
     "baseScoreMultiplier": 50,
-    "baseScoreOffset": 25,
+    "baseScoreOffset": 0,
     "maxScore": 100,
     "minScore": 0
   },

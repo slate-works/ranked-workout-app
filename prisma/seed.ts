@@ -17,13 +17,14 @@ const muscleGroups = [
 ];
 
 // Exercise data with muscle group mappings
-// Format: { name, equipment, movement, muscles: [{ name, isPrimary, contribution }] }
+// Format: { name, equipment, movement, muscles: [{ name, isPrimary, contribution }], strengthStandard: number }
 const exercises = [
   // CHEST EXERCISES
   {
     name: 'Barbell Bench Press',
     equipmentType: 'barbell',
     movementPattern: 'push',
+    strengthStandard: 6.0,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.6 },
       { name: 'triceps', isPrimary: false, contribution: 0.25 },
@@ -34,6 +35,7 @@ const exercises = [
     name: 'Incline Barbell Bench Press',
     equipmentType: 'barbell',
     movementPattern: 'push',
+    strengthStandard: 5.0,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.55 },
       { name: 'shoulders', isPrimary: false, contribution: 0.25 },
@@ -44,6 +46,7 @@ const exercises = [
     name: 'Dumbbell Bench Press',
     equipmentType: 'dumbbell',
     movementPattern: 'push',
+    strengthStandard: 2.5,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.6 },
       { name: 'triceps', isPrimary: false, contribution: 0.25 },
@@ -54,6 +57,7 @@ const exercises = [
     name: 'Incline Dumbbell Press',
     equipmentType: 'dumbbell',
     movementPattern: 'push',
+    strengthStandard: 2.2,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.55 },
       { name: 'shoulders', isPrimary: false, contribution: 0.25 },
@@ -64,18 +68,21 @@ const exercises = [
     name: 'Dumbbell Fly',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.8,
     muscles: [{ name: 'chest', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Cable Fly',
     equipmentType: 'cable',
     movementPattern: 'isolation',
+    strengthStandard: 1.5,
     muscles: [{ name: 'chest', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Push-Up',
     equipmentType: 'bodyweight',
     movementPattern: 'push',
+    strengthStandard: 3.0,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.55 },
       { name: 'triceps', isPrimary: false, contribution: 0.3 },
@@ -86,6 +93,7 @@ const exercises = [
     name: 'Chest Dip',
     equipmentType: 'bodyweight',
     movementPattern: 'push',
+    strengthStandard: 4.0,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.5 },
       { name: 'triceps', isPrimary: false, contribution: 0.35 },
@@ -96,6 +104,7 @@ const exercises = [
     name: 'Machine Chest Press',
     equipmentType: 'machine',
     movementPattern: 'push',
+    strengthStandard: 5.5,
     muscles: [
       { name: 'chest', isPrimary: true, contribution: 0.6 },
       { name: 'triceps', isPrimary: false, contribution: 0.25 },
@@ -108,6 +117,7 @@ const exercises = [
     name: 'Barbell Deadlift',
     equipmentType: 'barbell',
     movementPattern: 'hinge',
+    strengthStandard: 9.0,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.4 },
       { name: 'hamstrings', isPrimary: false, contribution: 0.25 },
@@ -119,6 +129,7 @@ const exercises = [
     name: 'Romanian Deadlift',
     equipmentType: 'barbell',
     movementPattern: 'hinge',
+    strengthStandard: 7.0,
     muscles: [
       { name: 'hamstrings', isPrimary: true, contribution: 0.45 },
       { name: 'glutes', isPrimary: false, contribution: 0.3 },
@@ -129,6 +140,7 @@ const exercises = [
     name: 'Barbell Row',
     equipmentType: 'barbell',
     movementPattern: 'pull',
+    strengthStandard: 4.5,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.6 },
       { name: 'biceps', isPrimary: false, contribution: 0.25 },
@@ -139,6 +151,7 @@ const exercises = [
     name: 'Dumbbell Row',
     equipmentType: 'dumbbell',
     movementPattern: 'pull',
+    strengthStandard: 2.2,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.65 },
       { name: 'biceps', isPrimary: false, contribution: 0.25 },
@@ -149,6 +162,7 @@ const exercises = [
     name: 'Pull-Up',
     equipmentType: 'bodyweight',
     movementPattern: 'pull',
+    strengthStandard: 4.5,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.6 },
       { name: 'biceps', isPrimary: false, contribution: 0.3 },
@@ -159,6 +173,7 @@ const exercises = [
     name: 'Chin-Up',
     equipmentType: 'bodyweight',
     movementPattern: 'pull',
+    strengthStandard: 4.5,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.5 },
       { name: 'biceps', isPrimary: false, contribution: 0.4 },
@@ -169,6 +184,7 @@ const exercises = [
     name: 'Lat Pulldown',
     equipmentType: 'cable',
     movementPattern: 'pull',
+    strengthStandard: 4.5,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.65 },
       { name: 'biceps', isPrimary: false, contribution: 0.25 },
@@ -179,6 +195,7 @@ const exercises = [
     name: 'Seated Cable Row',
     equipmentType: 'cable',
     movementPattern: 'pull',
+    strengthStandard: 4.5,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.6 },
       { name: 'biceps', isPrimary: false, contribution: 0.25 },
@@ -189,6 +206,7 @@ const exercises = [
     name: 'T-Bar Row',
     equipmentType: 'barbell',
     movementPattern: 'pull',
+    strengthStandard: 5.0,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.65 },
       { name: 'biceps', isPrimary: false, contribution: 0.2 },
@@ -201,6 +219,7 @@ const exercises = [
     name: 'Overhead Press',
     equipmentType: 'barbell',
     movementPattern: 'push',
+    strengthStandard: 3.5,
     muscles: [
       { name: 'shoulders', isPrimary: true, contribution: 0.6 },
       { name: 'triceps', isPrimary: false, contribution: 0.3 },
@@ -211,6 +230,7 @@ const exercises = [
     name: 'Dumbbell Shoulder Press',
     equipmentType: 'dumbbell',
     movementPattern: 'push',
+    strengthStandard: 1.6,
     muscles: [
       { name: 'shoulders', isPrimary: true, contribution: 0.65 },
       { name: 'triceps', isPrimary: false, contribution: 0.25 },
@@ -221,18 +241,21 @@ const exercises = [
     name: 'Lateral Raise',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.5,
     muscles: [{ name: 'shoulders', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Front Raise',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.5,
     muscles: [{ name: 'shoulders', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Rear Delt Fly',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.4,
     muscles: [
       { name: 'shoulders', isPrimary: true, contribution: 0.8 },
       { name: 'back', isPrimary: false, contribution: 0.2 },
@@ -242,6 +265,7 @@ const exercises = [
     name: 'Face Pull',
     equipmentType: 'cable',
     movementPattern: 'pull',
+    strengthStandard: 2.0,
     muscles: [
       { name: 'shoulders', isPrimary: true, contribution: 0.6 },
       { name: 'back', isPrimary: false, contribution: 0.4 },
@@ -251,6 +275,7 @@ const exercises = [
     name: 'Arnold Press',
     equipmentType: 'dumbbell',
     movementPattern: 'push',
+    strengthStandard: 1.4,
     muscles: [
       { name: 'shoulders', isPrimary: true, contribution: 0.7 },
       { name: 'triceps', isPrimary: false, contribution: 0.2 },
@@ -263,42 +288,49 @@ const exercises = [
     name: 'Barbell Curl',
     equipmentType: 'barbell',
     movementPattern: 'isolation',
+    strengthStandard: 2.0,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Dumbbell Curl',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.9,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Hammer Curl',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.9,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Preacher Curl',
     equipmentType: 'barbell',
     movementPattern: 'isolation',
+    strengthStandard: 1.8,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Cable Curl',
     equipmentType: 'cable',
     movementPattern: 'isolation',
+    strengthStandard: 1.8,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Incline Dumbbell Curl',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.8,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Concentration Curl',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.8,
     muscles: [{ name: 'biceps', isPrimary: true, contribution: 1.0 }],
   },
 
@@ -307,6 +339,7 @@ const exercises = [
     name: 'Close-Grip Bench Press',
     equipmentType: 'barbell',
     movementPattern: 'push',
+    strengthStandard: 5.0,
     muscles: [
       { name: 'triceps', isPrimary: true, contribution: 0.6 },
       { name: 'chest', isPrimary: false, contribution: 0.3 },
@@ -317,6 +350,7 @@ const exercises = [
     name: 'Tricep Dip',
     equipmentType: 'bodyweight',
     movementPattern: 'push',
+    strengthStandard: 4.0,
     muscles: [
       { name: 'triceps', isPrimary: true, contribution: 0.65 },
       { name: 'chest', isPrimary: false, contribution: 0.25 },
@@ -327,24 +361,28 @@ const exercises = [
     name: 'Tricep Pushdown',
     equipmentType: 'cable',
     movementPattern: 'isolation',
+    strengthStandard: 2.5,
     muscles: [{ name: 'triceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Overhead Tricep Extension',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 1.0,
     muscles: [{ name: 'triceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Skull Crusher',
     equipmentType: 'barbell',
     movementPattern: 'isolation',
+    strengthStandard: 2.0,
     muscles: [{ name: 'triceps', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Tricep Kickback',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 0.6,
     muscles: [{ name: 'triceps', isPrimary: true, contribution: 1.0 }],
   },
 
@@ -353,6 +391,7 @@ const exercises = [
     name: 'Barbell Back Squat',
     equipmentType: 'barbell',
     movementPattern: 'squat',
+    strengthStandard: 8.0,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.5 },
       { name: 'glutes', isPrimary: false, contribution: 0.3 },
@@ -364,6 +403,7 @@ const exercises = [
     name: 'Front Squat',
     equipmentType: 'barbell',
     movementPattern: 'squat',
+    strengthStandard: 6.5,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.6 },
       { name: 'glutes', isPrimary: false, contribution: 0.25 },
@@ -374,6 +414,7 @@ const exercises = [
     name: 'Leg Press',
     equipmentType: 'machine',
     movementPattern: 'squat',
+    strengthStandard: 16.0,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.55 },
       { name: 'glutes', isPrimary: false, contribution: 0.3 },
@@ -384,12 +425,14 @@ const exercises = [
     name: 'Leg Extension',
     equipmentType: 'machine',
     movementPattern: 'isolation',
+    strengthStandard: 3.0,
     muscles: [{ name: 'quads', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Goblet Squat',
     equipmentType: 'dumbbell',
     movementPattern: 'squat',
+    strengthStandard: 3.0,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.55 },
       { name: 'glutes', isPrimary: false, contribution: 0.3 },
@@ -400,6 +443,7 @@ const exercises = [
     name: 'Bulgarian Split Squat',
     equipmentType: 'dumbbell',
     movementPattern: 'squat',
+    strengthStandard: 1.5,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.5 },
       { name: 'glutes', isPrimary: false, contribution: 0.35 },
@@ -410,6 +454,7 @@ const exercises = [
     name: 'Hack Squat',
     equipmentType: 'machine',
     movementPattern: 'squat',
+    strengthStandard: 7.0,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.6 },
       { name: 'glutes', isPrimary: false, contribution: 0.25 },
@@ -420,6 +465,7 @@ const exercises = [
     name: 'Walking Lunge',
     equipmentType: 'dumbbell',
     movementPattern: 'squat',
+    strengthStandard: 1.2,
     muscles: [
       { name: 'quads', isPrimary: true, contribution: 0.45 },
       { name: 'glutes', isPrimary: false, contribution: 0.35 },
@@ -432,12 +478,14 @@ const exercises = [
     name: 'Leg Curl',
     equipmentType: 'machine',
     movementPattern: 'isolation',
+    strengthStandard: 2.5,
     muscles: [{ name: 'hamstrings', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Stiff-Leg Deadlift',
     equipmentType: 'barbell',
     movementPattern: 'hinge',
+    strengthStandard: 6.0,
     muscles: [
       { name: 'hamstrings', isPrimary: true, contribution: 0.5 },
       { name: 'glutes', isPrimary: false, contribution: 0.3 },
@@ -448,6 +496,7 @@ const exercises = [
     name: 'Hip Thrust',
     equipmentType: 'barbell',
     movementPattern: 'hinge',
+    strengthStandard: 10.0,
     muscles: [
       { name: 'glutes', isPrimary: true, contribution: 0.7 },
       { name: 'hamstrings', isPrimary: false, contribution: 0.3 },
@@ -457,6 +506,7 @@ const exercises = [
     name: 'Glute Bridge',
     equipmentType: 'bodyweight',
     movementPattern: 'hinge',
+    strengthStandard: 8.0,
     muscles: [
       { name: 'glutes', isPrimary: true, contribution: 0.75 },
       { name: 'hamstrings', isPrimary: false, contribution: 0.25 },
@@ -466,6 +516,7 @@ const exercises = [
     name: 'Good Morning',
     equipmentType: 'barbell',
     movementPattern: 'hinge',
+    strengthStandard: 4.0,
     muscles: [
       { name: 'hamstrings', isPrimary: true, contribution: 0.45 },
       { name: 'back', isPrimary: false, contribution: 0.35 },
@@ -476,6 +527,7 @@ const exercises = [
     name: 'Cable Pull Through',
     equipmentType: 'cable',
     movementPattern: 'hinge',
+    strengthStandard: 3.0,
     muscles: [
       { name: 'glutes', isPrimary: true, contribution: 0.6 },
       { name: 'hamstrings', isPrimary: false, contribution: 0.4 },
@@ -487,18 +539,21 @@ const exercises = [
     name: 'Standing Calf Raise',
     equipmentType: 'machine',
     movementPattern: 'isolation',
+    strengthStandard: 4.0,
     muscles: [{ name: 'calves', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Seated Calf Raise',
     equipmentType: 'machine',
     movementPattern: 'isolation',
+    strengthStandard: 3.0,
     muscles: [{ name: 'calves', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Dumbbell Calf Raise',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 2.0,
     muscles: [{ name: 'calves', isPrimary: true, contribution: 1.0 }],
   },
 
@@ -507,42 +562,49 @@ const exercises = [
     name: 'Plank',
     equipmentType: 'bodyweight',
     movementPattern: 'isolation',
+    strengthStandard: 1.0,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Crunch',
     equipmentType: 'bodyweight',
     movementPattern: 'isolation',
+    strengthStandard: 1.0,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Cable Crunch',
     equipmentType: 'cable',
     movementPattern: 'isolation',
+    strengthStandard: 2.0,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Hanging Leg Raise',
     equipmentType: 'bodyweight',
     movementPattern: 'isolation',
+    strengthStandard: 1.5,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Ab Wheel Rollout',
     equipmentType: 'bodyweight',
     movementPattern: 'isolation',
+    strengthStandard: 1.5,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Russian Twist',
     equipmentType: 'bodyweight',
     movementPattern: 'isolation',
+    strengthStandard: 1.0,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
   {
     name: 'Dead Bug',
     equipmentType: 'bodyweight',
     movementPattern: 'isolation',
+    strengthStandard: 1.0,
     muscles: [{ name: 'core', isPrimary: true, contribution: 1.0 }],
   },
 
@@ -551,6 +613,7 @@ const exercises = [
     name: 'Clean and Press',
     equipmentType: 'barbell',
     movementPattern: 'push',
+    strengthStandard: 4.0,
     muscles: [
       { name: 'shoulders', isPrimary: true, contribution: 0.3 },
       { name: 'back', isPrimary: false, contribution: 0.25 },
@@ -563,6 +626,7 @@ const exercises = [
     name: 'Farmers Walk',
     equipmentType: 'dumbbell',
     movementPattern: 'carry',
+    strengthStandard: 4.0,
     muscles: [
       { name: 'core', isPrimary: true, contribution: 0.3 },
       { name: 'back', isPrimary: false, contribution: 0.25 },
@@ -575,6 +639,7 @@ const exercises = [
     name: 'Shrugs',
     equipmentType: 'dumbbell',
     movementPattern: 'isolation',
+    strengthStandard: 4.0,
     muscles: [
       { name: 'back', isPrimary: true, contribution: 0.8 },
       { name: 'shoulders', isPrimary: false, contribution: 0.2 },
@@ -610,13 +675,14 @@ async function main() {
         category: ex.equipmentType,
         equipmentType: ex.equipmentType,
         movementPattern: ex.movementPattern,
+        strengthStandard: ex.strengthStandard || 1.0,
       },
       create: {
         name: ex.name,
         category: ex.equipmentType,
         equipmentType: ex.equipmentType,
         movementPattern: ex.movementPattern,
-        strengthStandard: 1.0,
+        strengthStandard: ex.strengthStandard || 1.0,
       },
     });
 
