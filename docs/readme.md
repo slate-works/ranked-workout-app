@@ -26,7 +26,7 @@ This app is for educational and motivational purposes only. It is not medical ad
 ## Tech Stack (intended)
 - Next.js + TypeScript
 - Tailwind CSS
-- Database: PostgreSQL or SQLite for dev
+- Database: PostgreSQL or SQLite
 - Prisma ORM
 
 ---
