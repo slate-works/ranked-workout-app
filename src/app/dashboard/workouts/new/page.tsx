@@ -1,0 +1,605 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  Plus,
+  Search,
+  Trash2,
+  Timer,
+  ChevronDown,
+  ChevronUp,
+  Save,
+  Loader2,
+  Dumbbell,
+  Check,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+
+interface SetData {
+  id: string;
+  reps: string;
+  weight: string;
+  rpe: string;
+  isWarmup: boolean;
+  completed: boolean;
+}
+
+interface ExerciseData {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  sets: SetData[];
+  isExpanded: boolean;
+  notes: string;
+  isDumbbell?: boolean;
+  dumbbellMode?: 'single' | 'paired';
+}
+
+const WORKOUT_TYPES = [
+  { value: 'push', label: 'Push' },
+  { value: 'pull', label: 'Pull' },
+  { value: 'legs', label: 'Legs' },
+  { value: 'upper', label: 'Upper Body' },
+  { value: 'lower', label: 'Lower Body' },
+  { value: 'full_body', label: 'Full Body' },
+  { value: 'custom', label: 'Custom' },
+];
+
+// Mock exercises - will be replaced with API call
+const MOCK_EXERCISES = [
+  { id: '1', name: 'Barbell Bench Press', equipment: 'barbell', muscle: 'chest' },
+  { id: '2', name: 'Incline Dumbbell Press', equipment: 'dumbbell', muscle: 'chest' },
+  { id: '3', name: 'Cable Fly', equipment: 'cable', muscle: 'chest' },
+  { id: '4', name: 'Barbell Back Squat', equipment: 'barbell', muscle: 'quads' },
+  { id: '5', name: 'Leg Press', equipment: 'machine', muscle: 'quads' },
+  { id: '6', name: 'Romanian Deadlift', equipment: 'barbell', muscle: 'hamstrings' },
+  { id: '7', name: 'Lat Pulldown', equipment: 'cable', muscle: 'back' },
+  { id: '8', name: 'Barbell Row', equipment: 'barbell', muscle: 'back' },
+  { id: '9', name: 'Overhead Press', equipment: 'barbell', muscle: 'shoulders' },
+  { id: '10', name: 'Lateral Raise', equipment: 'dumbbell', muscle: 'shoulders' },
+  { id: '11', name: 'Barbell Curl', equipment: 'barbell', muscle: 'biceps' },
+  { id: '12', name: 'Tricep Pushdown', equipment: 'cable', muscle: 'triceps' },
+];
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+function createEmptySet(): SetData {
+  return {
+    id: generateId(),
+    reps: '',
+    weight: '',
+    rpe: '',
+    isWarmup: false,
+    completed: false,
+  };
+}
+
+export default function NewWorkoutPage() {
+  const router = useRouter();
+  const [workoutType, setWorkoutType] = useState('');
+  const [workoutName, setWorkoutName] = useState('');
+  const [exercises, setExercises] = useState<ExerciseData[]>([]);
+  const [showExerciseSearch, setShowExerciseSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [restTimer, setRestTimer] = useState<number | null>(null);
+  const [restTimeRemaining, setRestTimeRemaining] = useState(0);
+
+  // Rest timer
+  useEffect(() => {
+    if (restTimeRemaining > 0) {
+      const interval = setInterval(() => {
+        setRestTimeRemaining((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [restTimeRemaining]);
+
+  const filteredExercises = MOCK_EXERCISES.filter((ex) =>
+    ex.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const addExercise = (exercise: (typeof MOCK_EXERCISES)[0]) => {
+    const newExercise: ExerciseData = {
+      id: generateId(),
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      sets: [createEmptySet()],
+      isExpanded: true,
+      notes: '',
+      isDumbbell: exercise.equipment === 'dumbbell',
+      dumbbellMode: exercise.equipment === 'dumbbell' ? 'paired' : undefined,
+    };
+    setExercises([...exercises, newExercise]);
+    setShowExerciseSearch(false);
+    setSearchQuery('');
+  };
+
+  const removeExercise = (exerciseId: string) => {
+    setExercises(exercises.filter((e) => e.id !== exerciseId));
+  };
+
+  const toggleExerciseExpanded = (exerciseId: string) => {
+    setExercises(
+      exercises.map((e) =>
+        e.id === exerciseId ? { ...e, isExpanded: !e.isExpanded } : e
+      )
+    );
+  };
+
+  const addSet = (exerciseId: string) => {
+    setExercises(
+      exercises.map((e) =>
+        e.id === exerciseId ? { ...e, sets: [...e.sets, createEmptySet()] } : e
+      )
+    );
+  };
+
+  const updateSet = (
+    exerciseId: string,
+    setId: string,
+    field: keyof SetData,
+    value: string | boolean
+  ) => {
+    setExercises(
+      exercises.map((e) =>
+        e.id === exerciseId
+          ? {
+              ...e,
+              sets: e.sets.map((s) =>
+                s.id === setId ? { ...s, [field]: value } : s
+              ),
+            }
+          : e
+      )
+    );
+  };
+
+  const removeSet = (exerciseId: string, setId: string) => {
+    setExercises(
+      exercises.map((e) =>
+        e.id === exerciseId
+          ? { ...e, sets: e.sets.filter((s) => s.id !== setId) }
+          : e
+      )
+    );
+  };
+
+  const completeSet = (exerciseId: string, setId: string) => {
+    updateSet(exerciseId, setId, 'completed', true);
+    // Start rest timer
+    if (restTimer) {
+      setRestTimeRemaining(restTimer);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // TODO: Save workout to API
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      router.push('/dashboard/workouts');
+    } catch (error) {
+      console.error('Failed to save workout:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold">New Workout</h1>
+            <p className="text-sm text-muted-foreground">
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </p>
+          </div>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving || exercises.length === 0}>
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          Save Workout
+        </Button>
+      </div>
+
+      {/* Workout Info */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Workout Type</Label>
+              <Select value={workoutType} onValueChange={setWorkoutType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WORKOUT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Session Name (optional)</Label>
+              <Input
+                placeholder="e.g., Morning Push"
+                value={workoutName}
+                onChange={(e) => setWorkoutName(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Rest Timer */}
+      {restTimeRemaining > 0 && (
+        <Card className="bg-primary/10 border-primary/20">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Timer className="h-5 w-5 text-primary" />
+                <span className="font-medium">Rest Timer</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-bold text-primary">
+                  {formatTime(restTimeRemaining)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRestTimeRemaining(0)}
+                >
+                  Skip
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Exercises */}
+      <div className="space-y-4">
+        {exercises.map((exercise, exerciseIndex) => (
+          <Card key={exercise.id}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <button
+                  className="flex items-center gap-2 text-left"
+                  onClick={() => toggleExerciseExpanded(exercise.id)}
+                >
+                  {exercise.isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  <div>
+                    <CardTitle className="text-base">
+                      {exercise.exerciseName}
+                    </CardTitle>
+                    <CardDescription>
+                      {exercise.sets.filter((s) => s.completed).length} /{' '}
+                      {exercise.sets.length} sets completed
+                    </CardDescription>
+                  </div>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => removeExercise(exercise.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            {exercise.isExpanded && (
+              <CardContent className="space-y-4">
+                {/* Dumbbell mode toggle */}
+                {exercise.isDumbbell && (
+                  <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm">Dumbbell Mode:</span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={
+                          exercise.dumbbellMode === 'paired' ? 'default' : 'outline'
+                        }
+                        onClick={() =>
+                          setExercises(
+                            exercises.map((e) =>
+                              e.id === exercise.id
+                                ? { ...e, dumbbellMode: 'paired' }
+                                : e
+                            )
+                          )
+                        }
+                      >
+                        Paired (×2)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={
+                          exercise.dumbbellMode === 'single' ? 'default' : 'outline'
+                        }
+                        onClick={() =>
+                          setExercises(
+                            exercises.map((e) =>
+                              e.id === exercise.id
+                                ? { ...e, dumbbellMode: 'single' }
+                                : e
+                            )
+                          )
+                        }
+                      >
+                        Single
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sets header */}
+                <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground font-medium px-2">
+                  <div className="col-span-1">Set</div>
+                  <div className="col-span-3">Weight</div>
+                  <div className="col-span-3">Reps</div>
+                  <div className="col-span-2">RPE</div>
+                  <div className="col-span-3"></div>
+                </div>
+
+                {/* Sets */}
+                {exercise.sets.map((set, setIndex) => (
+                  <div
+                    key={set.id}
+                    className={cn(
+                      'grid grid-cols-12 gap-2 items-center p-2 rounded-lg transition-colors',
+                      set.completed && 'bg-green-500/10',
+                      set.isWarmup && 'opacity-60'
+                    )}
+                  >
+                    <div className="col-span-1 text-sm font-medium">
+                      {set.isWarmup ? 'W' : setIndex + 1}
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={set.weight}
+                        onChange={(e) =>
+                          updateSet(exercise.id, set.id, 'weight', e.target.value)
+                        }
+                        className="h-9"
+                        disabled={set.completed}
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={set.reps}
+                        onChange={(e) =>
+                          updateSet(exercise.id, set.id, 'reps', e.target.value)
+                        }
+                        className="h-9"
+                        disabled={set.completed}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Select
+                        value={set.rpe}
+                        onValueChange={(v) =>
+                          updateSet(exercise.id, set.id, 'rpe', v)
+                        }
+                        disabled={set.completed}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[5, 6, 7, 8, 9, 10].map((rpe) => (
+                            <SelectItem key={rpe} value={rpe.toString()}>
+                              {rpe}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-3 flex items-center gap-1">
+                      {!set.completed ? (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={!set.weight || !set.reps}
+                          onClick={() => completeSet(exercise.id, set.id)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-green-500 font-medium">
+                          ✓ Done
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => removeSet(exercise.id, set.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add set button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => addSet(exercise.id)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Set
+                </Button>
+              </CardContent>
+            )}
+          </Card>
+        ))}
+
+        {/* Add Exercise */}
+        {showExerciseSearch ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Add Exercise</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowExerciseSearch(false);
+                    setSearchQuery('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search exercises..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {filteredExercises.map((exercise) => (
+                  <button
+                    key={exercise.id}
+                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left"
+                    onClick={() => addExercise(exercise)}
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{exercise.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {exercise.muscle} • {exercise.equipment}
+                      </p>
+                    </div>
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                ))}
+                {filteredExercises.length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-4">
+                    No exercises found
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Button
+            variant="outline"
+            className="w-full h-14 border-dashed"
+            onClick={() => setShowExerciseSearch(true)}
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Exercise
+          </Button>
+        )}
+      </div>
+
+      {/* Rest Timer Settings */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Timer className="h-4 w-4" />
+            Rest Timer
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <Select
+              value={restTimer?.toString() || 'off'}
+              onValueChange={(v) => setRestTimer(v === 'off' ? null : parseInt(v))}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Off" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="off">Off</SelectItem>
+                <SelectItem value="60">1:00</SelectItem>
+                <SelectItem value="90">1:30</SelectItem>
+                <SelectItem value="120">2:00</SelectItem>
+                <SelectItem value="180">3:00</SelectItem>
+                <SelectItem value="300">5:00</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">
+              Auto-start after completing a set
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Empty State */}
+      {exercises.length === 0 && (
+        <div className="text-center py-12">
+          <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="font-medium mb-2">No exercises yet</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add your first exercise to start tracking
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

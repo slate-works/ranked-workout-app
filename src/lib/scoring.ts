@@ -117,6 +117,27 @@ export function exerciseStrengthScore(relStrength: number, relNorm: number): num
 }
 
 /**
+ * Calculate strength score for an exercise (simplified version for API use)
+ */
+export function calculateStrengthScore(
+  oneRmKg: number,
+  bodyweightKg: number,
+  sex: string,
+  age: number,
+  strengthStandard: number = 1.0
+): number {
+  const relStrength = allometricRelativeStrength(oneRmKg, bodyweightKg);
+  const ageAdjustment = getAgeAdjustmentFactor(age);
+  
+  // Base relative norm varies by sex
+  const baseRelNorm = sex === 'female' ? 0.8 : 1.0;
+  const relNorm = baseRelNorm * strengthStandard;
+  
+  const score = exerciseStrengthScore(relStrength * ageAdjustment, relNorm);
+  return score;
+}
+
+/**
  * Calculate volume-weighted muscle group score
  */
 export function muscleGroupScore(exerciseScores: number[], volumeWeights: number[]): number {
@@ -159,6 +180,9 @@ export function getRankTier(score: number): RankTier {
   if (score >= tiers.silver.min) return 'silver';
   return 'bronze';
 }
+
+// Alias for API compatibility
+export const determineRank = getRankTier;
 
 /**
  * Get full rank information including tier, score, and color

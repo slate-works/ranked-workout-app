@@ -1,4 +1,4 @@
-import { PrismaClient } from '../src/generated/prisma';
+import { PrismaClient } from '../src/generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
@@ -607,13 +607,16 @@ async function main() {
     const exercise = await prisma.exercise.upsert({
       where: { name: ex.name },
       update: {
+        category: ex.equipmentType,
         equipmentType: ex.equipmentType,
         movementPattern: ex.movementPattern,
       },
       create: {
         name: ex.name,
+        category: ex.equipmentType,
         equipmentType: ex.equipmentType,
         movementPattern: ex.movementPattern,
+        strengthStandard: 1.0,
       },
     });
 
@@ -621,7 +624,7 @@ async function main() {
     for (const muscle of ex.muscles) {
       const muscleGroupId = muscleGroupMap.get(muscle.name);
       if (muscleGroupId) {
-        await prisma.exerciseMuscleGroup.upsert({
+        await prisma.muscleContribution.upsert({
           where: {
             exerciseId_muscleGroupId: {
               exerciseId: exercise.id,
@@ -630,13 +633,13 @@ async function main() {
           },
           update: {
             isPrimary: muscle.isPrimary,
-            contribution: muscle.contribution,
+            contributionPercentage: muscle.contribution * 100,
           },
           create: {
             exerciseId: exercise.id,
             muscleGroupId: muscleGroupId,
             isPrimary: muscle.isPrimary,
-            contribution: muscle.contribution,
+            contributionPercentage: muscle.contribution * 100,
           },
         });
       }

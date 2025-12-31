@@ -25,6 +25,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Streak tracking
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastWorkoutAt DateTime?
+
   // NextAuth relations
   accounts          Account[]
   authSessions      AuthSession[]
@@ -81,10 +86,12 @@ model Profile {
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  age             Int?
+  birthDate       DateTime?
   sex             String?  // "male" | "female" | "other"
-  heightCm        Float?
-  weightKg        Float?
+  height          Float?   // In user's preferred unit
+  heightUnit      String   @default("cm") // "cm" | "in"
+  bodyWeight      Float?   // In user's preferred unit
+  weightUnit      String   @default("kg") // "kg" | "lb"
   trainingAgeYears Float?  // How long they've been lifting
   preferredUnits  String   @default("kg") // "kg" | "lb"
 
@@ -111,15 +118,17 @@ model BodyweightEntry {
 // ============================================================================
 
 model Exercise {
-  id              String   @id @default(cuid())
-  name            String   @unique
-  equipmentType   String   // "barbell" | "dumbbell" | "machine" | "cable" | "bodyweight"
-  movementPattern String?  // "push" | "pull" | "squat" | "hinge" | "carry" | "isolation"
+  id               String   @id @default(cuid())
+  name             String   @unique
+  category         String   @default("other") // "barbell" | "dumbbell" | "machine" | "cable" | "bodyweight" | "other"
+  equipmentType    String   // "barbell" | "dumbbell" | "machine" | "cable" | "bodyweight"
+  movementPattern  String?  // "push" | "pull" | "squat" | "hinge" | "carry" | "isolation"
+  strengthStandard Float    @default(1.0) // Multiplier for strength standards (1.0 = average)
 
   // Muscle group mappings with contribution percentages
-  muscleGroups    ExerciseMuscleGroup[]
-  exerciseLogs    ExerciseLog[]
-  prRecords       PRRecord[]
+  muscleContributions MuscleContribution[]
+  exerciseLogs        ExerciseLog[]
+  prRecords           PRRecord[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -130,20 +139,20 @@ model MuscleGroup {
   name      String   @unique // "chest" | "back" | "shoulders" | "biceps" | "triceps" | "quads" | "hamstrings" | "glutes" | "calves" | "core"
   bodyArea  String   // "upper" | "lower" | "core"
 
-  exercises         ExerciseMuscleGroup[]
-  scoreSnapshots    MuscleGroupScoreSnapshot[]
-  recoverySnapshots RecoveryStateSnapshot[]
+  muscleContributions   MuscleContribution[]
+  scoreSnapshots        MuscleGroupScoreSnapshot[]
+  recoverySnapshots     RecoveryStateSnapshot[]
 }
 
-model ExerciseMuscleGroup {
-  id            String      @id @default(cuid())
-  exerciseId    String
-  exercise      Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  muscleGroupId String
-  muscleGroup   MuscleGroup @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
+model MuscleContribution {
+  id                    String      @id @default(cuid())
+  exerciseId            String
+  exercise              Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  muscleGroupId         String
+  muscleGroup           MuscleGroup @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
 
-  isPrimary     Boolean     @default(false)
-  contribution  Float       @default(0.5) // 0.0 - 1.0 fractional contribution
+  isPrimary             Boolean     @default(false)
+  contributionPercentage Float      @default(50) // 0-100 percentage contribution
 
   @@unique([exerciseId, muscleGroupId])
 }
@@ -157,19 +166,20 @@ model Session {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  date        DateTime @default(now())
+  startTime   DateTime @default(now())
+  endTime     DateTime?
   workoutType String?  // "push" | "pull" | "legs" | "upper" | "lower" | "full_body" | "custom"
   name        String?  // Optional custom session name
   notes       String?
   durationMin Int?     // Session duration in minutes
   sessionRpe  Float?   // Overall session RPE (1-10)
 
-  exerciseLogs ExerciseLog[]
+  exercises   ExerciseLog[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([userId, date])
+  @@index([userId, startTime])
 }
 
 model ExerciseLog {
@@ -197,17 +207,19 @@ model SetLog {
 
   setNumber     Int
   reps          Int
-  weightKg      Float
+  weight        Float
+  weightUnit    String      @default("kg") // "kg" | "lb"
   rpe           Float?      // Rating of Perceived Exertion (1-10)
   rir           Int?        // Reps in Reserve (0-10)
   isWarmup      Boolean     @default(false)
-  isDumbbell    Boolean     @default(false)
-  dumbbellMode  String?     // "single" | "paired" - for dumbbell exercises
+  isDumbbellPair Boolean    @default(false)
+  isDropSet     Boolean     @default(false)
+  isFailure     Boolean     @default(false)
 
   // Calculated fields (can be stored for quick access)
   estimated1RM  Float?
 
-  restTimeSec   Int?        // Rest time after this set in seconds
+  restAfter     Int?        // Rest time after this set in seconds
 
   createdAt     DateTime    @default(now())
 
@@ -225,14 +237,12 @@ model PRRecord {
   exerciseId  String
   exercise    Exercise @relation(fields: [exerciseId], references: [id])
 
-  prType      String   // "estimated_1rm" | "load" | "reps_at_load"
-  value       Float    // The PR value
-  reps        Int?     // For reps_at_load PR type
-  weightKg    Float?   // For reps_at_load PR type
+  weight      Float    // The weight lifted
+  reps        Int      // Number of reps
+  estimated1RM Float   // Calculated estimated 1RM
+  date        DateTime @default(now())
 
-  achievedAt  DateTime @default(now())
-
-  @@index([userId, exerciseId, prType])
+  @@index([userId, exerciseId])
 }
 
 // ============================================================================

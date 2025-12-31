@@ -1,10 +1,11 @@
 import NextAuth from 'next-auth';
+import type { NextAuthConfig } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma) as never,
   session: {
     strategy: 'jwt',
@@ -50,11 +51,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
       },
     }),
-    // Add OAuth providers here when configured
-    // GitHub({
-    //   clientId: process.env.AUTH_GITHUB_ID,
-    //   clientSecret: process.env.AUTH_GITHUB_SECRET,
-    // }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -70,4 +66,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-});
+};
+
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
+
+// For API routes that need the auth options
+export const authOptions = authConfig;
