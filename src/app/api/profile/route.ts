@@ -65,3 +65,22 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Delete user - cascading deletes will handle related data
+    await prisma.user.delete({
+      where: { id: session.user.id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete account:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

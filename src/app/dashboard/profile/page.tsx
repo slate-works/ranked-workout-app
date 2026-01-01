@@ -11,8 +11,9 @@ import {
   Trash2,
   ChevronRight,
   Save,
-  Camera,
   Loader2,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -242,9 +243,6 @@ export default function ProfilePage() {
                       {formData.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 p-1.5 bg-primary rounded-full hover:bg-primary/80 transition-colors">
-                    <Camera className="h-3 w-3" />
-                  </button>
                 </div>
                 <h3 className="mt-3 font-semibold">{formData.name}</h3>
                 <p className="text-sm text-muted-foreground">{formData.email}</p>
@@ -535,35 +533,53 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Dark Mode</p>
+                      <p className="font-medium">Theme</p>
                       <p className="text-sm text-muted-foreground">
-                        Use dark theme throughout the app
+                        Choose your preferred theme
                       </p>
                     </div>
-                    <button
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          preferences: {
-                            ...formData.preferences,
-                            darkMode: !formData.preferences.darkMode,
-                          },
-                        })
-                      }
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        formData.preferences.darkMode
-                          ? 'bg-primary'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                          formData.preferences.darkMode
-                            ? 'translate-x-7'
-                            : 'translate-x-1'
+                    <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+                      <button
+                        onClick={() => {
+                          document.documentElement.classList.remove('dark');
+                          setFormData({
+                            ...formData,
+                            preferences: {
+                              ...formData.preferences,
+                              darkMode: false,
+                            },
+                          });
+                        }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          !formData.preferences.darkMode
+                            ? 'bg-background shadow-sm'
+                            : 'hover:bg-background/50'
                         }`}
-                      />
-                    </button>
+                      >
+                        <Sun className="h-4 w-4" />
+                        Light
+                      </button>
+                      <button
+                        onClick={() => {
+                          document.documentElement.classList.add('dark');
+                          setFormData({
+                            ...formData,
+                            preferences: {
+                              ...formData.preferences,
+                              darkMode: true,
+                            },
+                          });
+                        }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          formData.preferences.darkMode
+                            ? 'bg-background shadow-sm'
+                            : 'hover:bg-background/50'
+                        }`}
+                      >
+                        <Moon className="h-4 w-4" />
+                        Dark
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -580,7 +596,36 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <button className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const [sessionsRes, prsRes] = await Promise.all([
+                          fetch('/api/sessions?limit=1000'),
+                          fetch('/api/prs'),
+                        ]);
+                        const sessions = await sessionsRes.json();
+                        const prs = await prsRes.json();
+                        const exportData = {
+                          exportDate: new Date().toISOString(),
+                          profile: formData,
+                          sessions: sessions.sessions || [],
+                          personalRecords: prs.prs || [],
+                        };
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `workout-data-${new Date().toISOString().split('T')[0]}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } catch (err) {
+                        setError('Failed to export data');
+                      }
+                    }}
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <Download className="h-5 w-5 text-muted-foreground" />
                       <div className="text-left">
@@ -592,7 +637,28 @@ export default function ProfilePage() {
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </button>
-                  <button className="w-full flex items-center justify-between p-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors">
+                  <button
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.')) {
+                        if (window.confirm('This is your final warning. Type DELETE in the next prompt to confirm.')) {
+                          const confirmation = window.prompt('Type DELETE to confirm account deletion:');
+                          if (confirmation === 'DELETE') {
+                            try {
+                              const res = await fetch('/api/profile', { method: 'DELETE' });
+                              if (res.ok) {
+                                window.location.href = '/login';
+                              } else {
+                                setError('Failed to delete account');
+                              }
+                            } catch (err) {
+                              setError('Failed to delete account');
+                            }
+                          }
+                        }
+                      }
+                    }}
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <Trash2 className="h-5 w-5 text-red-500" />
                       <div className="text-left">
@@ -671,15 +737,15 @@ export default function ProfilePage() {
                       </p>
                     </div>
                     <button
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        notification.enabled ? 'bg-primary' : 'bg-muted'
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                        notification.enabled ? 'bg-primary' : 'bg-input'
                       }`}
                     >
                       <span
-                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
                           notification.enabled
-                            ? 'translate-x-7'
-                            : 'translate-x-1'
+                            ? 'translate-x-5'
+                            : 'translate-x-0.5'
                         }`}
                       />
                     </button>
