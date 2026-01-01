@@ -1,12 +1,3 @@
-Below is a **single, self-contained markdown document** you can give directly to your dev team. It includes:
-
-- Evidence-based logic for: strength, scoring, volume, recovery, detraining, safety
-- Concrete formulas and parameters
-- Key citations with DOI/PMID
-
-***
-
-
 # Evidence-Based Logic Spec for Gym Gamification App
 Version: 1.0  
 Scope: General gym population (18–70+, novice → advanced)  
