@@ -669,15 +669,24 @@ async function main() {
   let exerciseCount = 0;
 
   for (const ex of exercises) {
-    const exercise = await prisma.exercise.upsert({
-      where: { name: ex.name },
-      update: {
+    // Check if exercise already exists
+    const existing = await prisma.exercise.findFirst({
+      where: { 
+        name: ex.name,
+        createdByUserId: null
+      }
+    });
+
+    const exercise = existing ? await prisma.exercise.update({
+      where: { id: existing.id },
+      data: {
         category: ex.equipmentType,
         equipmentType: ex.equipmentType,
         movementPattern: ex.movementPattern,
         strengthStandard: ex.strengthStandard || 1.0,
-      },
-      create: {
+      }
+    }) : await prisma.exercise.create({
+      data: {
         name: ex.name,
         category: ex.equipmentType,
         equipmentType: ex.equipmentType,

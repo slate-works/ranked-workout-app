@@ -87,24 +87,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if exercise with same name already exists for this user
-    // Note: SQLite doesn't support mode: 'insensitive', so we fetch all exercises
-    // and do case-insensitive comparison in JavaScript
-    const existingExercises = await db.exercise.findMany({
+    const existingExercise = await db.exercise.findFirst({
       where: {
+        name: { equals: name, mode: 'insensitive' },
         OR: [
           { createdByUserId: session.user.id },
           { createdByUserId: null }, // Also check global exercises
         ],
       },
-      select: {
-        id: true,
-        name: true,
-      },
     });
-
-    const existingExercise = existingExercises.find(
-      (ex) => ex.name.toLowerCase() === name.toLowerCase()
-    );
 
     if (existingExercise) {
       return NextResponse.json(
