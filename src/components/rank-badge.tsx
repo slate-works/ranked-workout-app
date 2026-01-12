@@ -182,6 +182,15 @@ export function MuscleGroupBreakdown({
       {sortedMuscles.map(([muscle, score]) => {
         const rank = getRankFromScore(score);
         const config = rankConfig[rank];
+        
+        // Get current and next rank thresholds
+        const currentIndex = rankThresholds.findIndex((r) => r.rank === rank);
+        const nextRank = rankThresholds[currentIndex + 1];
+        const currentMin = rankThresholds[currentIndex]?.min || 0;
+        const nextMin = nextRank?.min || 100;
+        
+        // Calculate progress within current rank (0-100%)
+        const progressInRank = ((score - currentMin) / (nextMin - currentMin)) * 100;
 
         return (
           <button
@@ -196,7 +205,7 @@ export function MuscleGroupBreakdown({
               <span className="text-sm font-medium capitalize">{muscle}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  {Math.round(score)} / 100
+                  {Math.round(score)} / {nextMin}
                 </span>
                 <span
                   className={cn(
@@ -216,7 +225,7 @@ export function MuscleGroupBreakdown({
                   rankBarColors[rank],
                   rank === 'mythic' && 'animate-pulse'
                 )}
-                style={{ width: `${Math.min(100, score)}%` }}
+                style={{ width: `${Math.min(100, progressInRank)}%` }}
               />
             </div>
           </button>
